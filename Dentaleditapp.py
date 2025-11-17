@@ -1871,7 +1871,7 @@ def logout():
 def add_sample_users():
     if User.query.first():
         return "Users already exist."
-    doctor = User(username="doctor", password=generate_password_hash("doctor123"), role="doctor")
+    doctor = User(username="doctor", password=generate_password_hash("tdeclinic321"), role="doctor")
     assistant = User(username="assistant", password=generate_password_hash("assistant123"), role="assistant")
     db.session.add_all([doctor, assistant])
     db.session.commit()
