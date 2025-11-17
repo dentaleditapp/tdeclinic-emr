@@ -1,0 +1,234 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<div class="container py-4">
+
+  <!-- HEADER -->
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h4 class="text-primary mb-0">
+        💊 {% if prescription %}Edit{% else %}Add{% endif %} Visit Prescription
+      </h4>
+      <div class="small text-muted">
+        {{ patient.full_name }} — Visit on {{ visit.visit_date }}
+      </div>
+    </div>
+
+    <div class="d-flex gap-2">
+      <a href="{{ url_for('medicine_master') }}" class="btn btn-sm btn-outline-secondary">
+        📚 Medicine Library
+      </a>
+      <a href="{{ url_for('view_patient', patient_id=patient.id) }}#visits"
+         class="btn btn-sm btn-outline-secondary">
+        ⬅ Back to Patient
+      </a>
+    </div>
+  </div>
+
+  <!-- MAIN FORM -->
+  <form method="POST">
+
+    <!-- Rx notes -->
+    <div class="mb-3">
+      <label class="form-label fw-bold">General Rx Notes (Optional)</label>
+      <textarea name="rx_notes" class="form-control" rows="2"
+                placeholder="e.g. Take with plenty of water; avoid driving after sedatives.">{{ prescription.notes if prescription else '' }}</textarea>
+    </div>
+
+    <!-- Auto Protocol Loader -->
+    <div class="card card-body border mb-3">
+      <label class="form-label fw-bold">🦷 Auto-Prescription Loader</label>
+      <div class="row g-2 mb-2">
+        <div class="col-md-6">
+          <select id="category-select" class="form-select">
+            <option value="">-- Select Category --</option>
+            {% for category in condition_groups %}
+              <option value="{{ category }}">{{ category }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6">
+          <select id="condition-select" class="form-select">
+            <option value="">-- Select Condition --</option>
+          </select>
+        </div>
+      </div>
+      <div class="d-flex gap-2">
+  <button type="button" class="btn btn-outline-primary btn-sm w-auto" onclick="loadProtocol()">📥 Load</button>
+  <button type="button" class="btn btn-outline-danger btn-sm w-auto" onclick="clearRx()">🔄 Clear</button>
+</div>
+
+
+    </div>
+
+    <!-- Dynamic Rx Table -->
+    <div class="card card-premium">
+  <div class="card-header luxury d-flex justify-content-between align-items-center">
+    <span class="fw-bold">📝 Prescription Items</span>
+    <button type="button" class="btn btn-light btn-compact" id="btnAddRow">
+      ➕ Add Row
+    </button>
+  </div>
+
+
+      <div class="card-body p-2">
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0" id="rxTable">
+            <thead class="table-light">
+              <tr>
+                <th>Drug Name</th>
+                <th>Form</th>
+                <th>Strength</th>
+                <th>Qty</th>
+                <th>Frequency</th>
+                <th>Duration</th>
+                <th>Notes</th>
+                <th>From Library</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="rx-rows">
+              {% if items %}
+                {% for item in items %}
+                  <tr class="rx-row">
+                    <td><input type="text" name="drug_name[]" class="form-control form-control-sm" value="{{ item.drug_name }}"></td>
+                    <td><input type="text" name="dosage_form[]" class="form-control form-control-sm" value="{{ item.dosage_form }}"></td>
+                    <td><input type="text" name="strength[]" class="form-control form-control-sm" value="{{ item.strength }}"></td>
+                    <td><input type="text" name="quantity[]" class="form-control form-control-sm" value="{{ item.quantity }}"></td>
+                    <td><input type="text" name="frequency[]" class="form-control form-control-sm" value="{{ item.frequency }}"></td>
+                    <td><input type="text" name="duration[]" class="form-control form-control-sm" value="{{ item.duration }}"></td>
+                    <td><input type="text" name="item_notes[]" class="form-control form-control-sm" value="{{ item.notes }}"></td>
+                    <td>
+                      <select class="form-select form-select-sm js-med-select">
+                        <option value="">-- pick --</option>
+                        {% for m in medicine_list %}
+                          <option value="{{ m.id }}"
+                                  data-drug="{{ m.drug_name }}"
+                                  data-form="{{ m.dosage_form or '' }}"
+                                  data-strength="{{ m.strength or '' }}"
+                                  data-qty="{{ m.quantity or '' }}"
+                                  data-frequency="{{ m.frequency or '' }}"
+                                  data-duration="{{ m.duration or '' }}"
+                                  data-notes="{{ m.notes or '' }}">
+                            {{ m.category }}: {{ m.drug_name }} {{ m.strength }}
+                          </option>
+                        {% endfor %}
+                      </select>
+                    </td>
+                    <td><button type="button" class="btn btn-sm btn-outline-danger js-remove-row">✕</button></td>
+                  </tr>
+                {% endfor %}
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card-footer text-end">
+        <button type="submit" class="btn btn-primary">💾 Save Prescription</button>
+      </div>
+    </div>
+
+  </form>
+</div>
+
+<!-- JavaScript -->
+<script>
+const PROTOCOLS = {{ condition_protocols | tojson | safe }};
+const GROUPS = {{ condition_groups | tojson | safe }};
+const categorySelect = document.getElementById("category-select");
+const conditionSelect = document.getElementById("condition-select");
+
+function populateConditions() {
+  conditionSelect.innerHTML = '<option value="">-- Select Condition --</option>';
+  const selectedCategory = categorySelect.value;
+  if (selectedCategory && GROUPS[selectedCategory]) {
+    GROUPS[selectedCategory].forEach(condition => {
+      const option = document.createElement("option");
+      option.value = condition;
+      option.textContent = condition;
+      conditionSelect.appendChild(option);
+    });
+  }
+}
+
+categorySelect.addEventListener("change", populateConditions);
+
+function clearRx() {
+  document.getElementById("rx-rows").innerHTML = "";
+}
+
+function loadProtocol() {
+  const selectedCondition = conditionSelect.value;
+
+  if (!selectedCondition) {
+    alert("Please select a condition to load.");
+    return;
+  }
+
+  const items = PROTOCOLS[selectedCondition];
+  if (!items) {
+    alert("No protocol found for this condition.");
+    return;
+  }
+
+  clearRx();
+  items.forEach(item => addRxRow(item));
+}
+
+function addRxRow(data = {}) {
+  const tbody = document.getElementById("rx-rows");
+  const tr = document.createElement("tr");
+  tr.classList.add("rx-row");
+
+  tr.innerHTML = `
+    <td><input type="text" name="drug_name[]" class="form-control form-control-sm" value="${data.drug_name || ''}"></td>
+    <td><input type="text" name="dosage_form[]" class="form-control form-control-sm" value="${data.dosage_form || ''}"></td>
+    <td><input type="text" name="strength[]" class="form-control form-control-sm" value="${data.strength || ''}"></td>
+    <td><input type="text" name="quantity[]" class="form-control form-control-sm" value="${data.quantity || ''}"></td>
+    <td><input type="text" name="frequency[]" class="form-control form-control-sm" value="${data.frequency || ''}"></td>
+    <td><input type="text" name="duration[]" class="form-control form-control-sm" value="${data.duration || ''}"></td>
+    <td><input type="text" name="item_notes[]" class="form-control form-control-sm" value="${data.notes || ''}"></td>
+    <td>
+      <select class="form-select form-select-sm js-med-select">
+        <option value="">-- pick --</option>
+        {% for m in medicine_list %}
+          <option value="{{ m.id }}"
+                  data-drug="{{ m.drug_name }}"
+                  data-form="{{ m.dosage_form or '' }}"
+                  data-strength="{{ m.strength or '' }}"
+                  data-qty="{{ m.quantity or '' }}"
+                  data-frequency="{{ m.frequency or '' }}"
+                  data-duration="{{ m.duration or '' }}"
+                  data-notes="{{ m.notes or '' }}">
+            {{ m.category }}: {{ m.drug_name }} {{ m.strength }}
+          </option>
+        {% endfor %}
+      </select>
+    </td>
+    <td><button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('tr').remove()">✕</button></td>
+  `;
+  tbody.appendChild(tr);
+}
+
+document.getElementById("btnAddRow").addEventListener("click", () => addRxRow());
+document.getElementById("rx-rows").addEventListener("change", function(event) {
+  if (event.target.classList.contains("js-med-select")) {
+    const select = event.target;
+    const option = select.options[select.selectedIndex];
+
+    if (option.dataset) {
+      const row = select.closest("tr");
+      row.querySelector('input[name="drug_name[]"]').value = option.dataset.drug;
+      row.querySelector('input[name="dosage_form[]"]').value = option.dataset.form;
+      row.querySelector('input[name="strength[]"]').value = option.dataset.strength;
+      row.querySelector('input[name="quantity[]"]').value = option.dataset.qty;
+      row.querySelector('input[name="frequency[]"]').value = option.dataset.frequency;
+      row.querySelector('input[name="duration[]"]').value = option.dataset.duration;
+      row.querySelector('input[name="item_notes[]"]').value = option.dataset.notes;
+    }
+  }
+});
+</script>
+
+{% endblock %}

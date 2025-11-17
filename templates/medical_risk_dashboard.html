@@ -1,0 +1,1095 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container py-4">
+
+  <!-- HEADER -->
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h3 class="text-primary fw-bold mb-1">🩺 Clinical Risk & Protocols</h3>
+      <p class="text-muted mb-0 small">
+        Chair-side helper for patients with systemic conditions, bleeding risk & antibiotic prophylaxis.
+      </p>
+    </div>
+    <div>
+      <a href="{{ url_for('dashboard_main') }}" class="btn btn-outline-secondary btn-sm">⬅ Back to Dashboard</a>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- ===========================
+       QUICK INTERACTIVE WIZARD
+  ============================ -->
+  <div class="row g-3 mb-4">
+    <!-- LEFT: CATEGORY & SUBCONDITION -->
+    <div class="col-md-4">
+      <div class="card shadow-sm h-100">
+        <div class="card-header bg-primary text-white fw-bold">
+          ⚙️ Step 1 — Select Condition
+        </div>
+        <div class="card-body">
+
+          <div class="mb-3">
+            <label class="form-label fw-bold">System / Broad Category</label>
+            <select id="categorySelect" class="form-select">
+              <option value="">-- Select Category --</option>
+              <option value="cardio">Cardiovascular Disease</option>
+              <option value="bleeding">Bleeding Disorders & Antithrombotic Drugs</option>
+              <option value="diabetes">Diabetes Mellitus</option>
+              <option value="respiratory">Pulmonary Disease (Asthma / COPD)</option>
+              <option value="liver_kidney">Liver & Kidney Disease</option>
+              <option value="thyroid">Thyroid Disorders</option>
+              <option value="epilepsy">Epilepsy / Seizure Disorders</option>
+              <option value="gi">Peptic Ulcer / GERD</option>
+              <option value="psychiatric">Psychiatric Disorders</option>
+              <option value="ab_prophylaxis">Antibiotic Prophylaxis (Cardiac)</option>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-bold">Specific Condition</label>
+            <select id="subConditionSelect" class="form-select" disabled>
+              <option value="">-- Select a category first --</option>
+            </select>
+          </div>
+
+          <small class="text-muted">
+            Select a category → choose the specific condition → see questions & management on the right.
+          </small>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: QUESTIONS + MANAGEMENT -->
+    <div class="col-md-8">
+      <div class="card shadow-sm mb-3">
+        <div class="card-header bg-info text-white fw-bold">
+          ❓ Step 2 — Key Questions to Ask
+        </div>
+        <div class="card-body">
+          <ul id="questionsList" class="mb-0"></ul>
+          <p id="questionsEmpty" class="text-muted mb-0 small">
+            Select a category & condition to see focused history questions.
+          </p>
+        </div>
+      </div>
+
+      <div class="card shadow-sm mb-3">
+        <div class="card-header bg-success text-white fw-bold">
+          ✅ Step 3 — Dental Management & Modifications
+        </div>
+        <div class="card-body">
+          <h6 class="fw-bold">Safe to Proceed?</h6>
+          <ul id="proceedList"></ul>
+
+          <h6 class="fw-bold mt-3">Chair-side Modifications</h6>
+          <ul id="managementList"></ul>
+
+          <h6 class="fw-bold mt-3 text-danger">🚩 When to Defer / Refer</h6>
+          <ul id="deferList"></ul>
+
+          <p id="managementEmpty" class="text-muted small mb-0">
+            This section will populate based on your selected condition.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===========================
+       SECTION 1 — GENERAL PRINCIPLES
+  ============================ -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-dark text-white fw-bold">
+      📌 SECTION 1 — GENERAL PRINCIPLES
+    </div>
+    <div class="card-body">
+      <h6 class="fw-bold">1.1 Medical History Review</h6>
+      <ul>
+        <li>Confirm diagnosis and level of control of the systemic disease.</li>
+        <li>List all medications (including OTC / herbal / homeopathic).</li>
+        <li>Ask about hospitalizations, surgeries, anesthesia issues and bleeding history.</li>
+        <li>Ask about drug allergies and adverse reactions.</li>
+        <li>Confirm last physician visit and whether patient has recent medical clearance (if relevant).</li>
+      </ul>
+
+      <h6 class="fw-bold">1.2 Vital Signs</h6>
+      <ul>
+        <li>Record blood pressure, pulse and respiratory rate for all medically complex patients.</li>
+        <li>Random blood glucose (RBS) when there is diabetes / symptoms / concern.</li>
+      </ul>
+
+      <h6 class="fw-bold">1.3 When to Postpone Elective Treatment</h6>
+      <p class="mb-1">Defer non-emergency dental care if any of the following apply:</p>
+      <ul>
+        <li>Myocardial infarction <strong>&lt; 30 days</strong> or unstable angina.</li>
+        <li>Severe dyspnea or decompensated heart failure.</li>
+        <li>BP <strong>≥ 180/110 mmHg</strong> on repeat measurement.</li>
+        <li>Active, untreated tuberculosis.</li>
+        <li>Warfarin: INR <strong>&gt; 3.5</strong> for planned oral surgery.</li>
+        <li>RBS <strong>&gt; 300 mg/dL</strong>.</li>
+        <li>Severe anemia with Hb <strong>&lt; 7 g/dL</strong>.</li>
+      </ul>
+
+      <h6 class="fw-bold">1.4 Anxiety Reduction for High-Risk Patients</h6>
+      <ul>
+        <li>Short, morning appointments.</li>
+        <li>Explain procedure in simple language; avoid surprises.</li>
+        <li>Use music / relaxation; maintain eye contact and reassurance.</li>
+        <li>Consider premedication (e.g. short-acting benzodiazepine) <strong>only in consultation with physician</strong>.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ===========================
+       SECTION 2 — CONDITION SPECIFIC
+       (ACCORDION, DETAILED REFERENCE)
+  ============================ -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-secondary text-white fw-bold">
+      📌 SECTION 2 — Condition-Specific Management (Reference)
+    </div>
+    <div class="card-body">
+      <div class="accordion" id="condAccordion">
+
+        <!-- 2.1 CARDIOVASCULAR -->
+        <div class="accordion-item">
+          <h2 class="accordion-header" id="headingCardio">
+            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseCardio">
+              2.1 Cardiovascular Diseases
+            </button>
+          </h2>
+          <div id="collapseCardio" class="accordion-collapse collapse show" data-bs-parent="#condAccordion">
+            <div class="accordion-body">
+              <h6 class="fw-bold">A. Ischemic Heart Disease / Angina / Post-MI</h6>
+              <ul>
+                <li><strong>MI &gt; 6 months</strong> → elective treatment allowed with precautions.</li>
+                <li><strong>MI &lt; 6 months</strong> or unstable angina → defer elective care, treat emergencies only with hospital support.</li>
+                <li>Pre-op: measure BP and pulse; confirm use of antiplatelet / anticoagulants; keep sublingual nitroglycerin at chair-side.</li>
+                <li>Local anesthesia: max epinephrine dose ≈ <strong>0.04 mg</strong> (about 2 cartridges of 1:100,000 lidocaine).</li>
+                <li>Avoid or minimize vasoconstrictor in poorly controlled ischemic disease.</li>
+              </ul>
+              <p class="fw-bold mb-1">If chest pain occurs during treatment:</p>
+              <ul>
+                <li>Stop procedure, sit patient upright.</li>
+                <li>Nitroglycerin <strong>0.4 mg SL</strong> every 5 minutes, up to 3 doses.</li>
+                <li>Give oxygen 4–6 L/min if available.</li>
+                <li>No relief after 3 doses / 15 minutes → suspect MI → activate EMS / transfer.</li>
+              </ul>
+              <p class="fw-bold mb-1">Analgesia:</p>
+              <ul>
+                <li>Paracetamol preferred.</li>
+                <li>Avoid routine NSAIDs in patients on antiplatelets or with heart failure / renal disease.</li>
+              </ul>
+
+              <h6 class="fw-bold mt-3">B. Hypertension</h6>
+              <ul>
+                <li><strong>≤160/100 mmHg</strong> → routine treatment allowed.</li>
+                <li><strong>160–179 / 100–109</strong> → treat urgent needs only, monitor BP, limit epi.</li>
+                <li><strong>≥180/110</strong> → defer elective care, refer for medical optimization.</li>
+                <li>Avoid rapid changes in chair position; avoid long stressful appointments.</li>
+                <li>Limit epinephrine; avoid drug interactions with some antihypertensives and NSAIDs.</li>
+              </ul>
+
+              <h6 class="fw-bold mt-3">C. Heart Valve Disease & Infective Endocarditis Risk</h6>
+              <p class="mb-1">High-risk cardiac conditions:</p>
+              <ul>
+                <li>Prosthetic heart valves.</li>
+                <li>Previous infective endocarditis.</li>
+                <li>Unrepaired cyanotic congenital heart disease.</li>
+                <li>Repaired CHD with residual defects or within 6 months post-repair.</li>
+                <li>Cardiac transplant with valvular regurgitation.</li>
+              </ul>
+              <p class="mb-0">These may require <strong>antibiotic prophylaxis</strong> for procedures involving gingival manipulation / periapical tissue / oral mucosa perforation (see Section 3).</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2.2 BLEEDING / ANTITHROMBOTIC -->
+        <div class="accordion-item">
+          <h2 class="accordion-header" id="headingBleeding">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseBleeding">
+              2.2 Bleeding Disorders & Antithrombotic Drugs
+            </button>
+          </h2>
+          <div id="collapseBleeding" class="accordion-collapse collapse" data-bs-parent="#condAccordion">
+            <div class="accordion-body">
+              <p class="fw-bold mb-1">Step 1 – Identify Bleeding Risk</p>
+              <ul>
+                <li>Anticoagulants: Warfarin, DOACs (Rivaroxaban, Apixaban, Dabigatran, Edoxaban).</li>
+                <li>Antiplatelets: Aspirin, Clopidogrel, Ticagrelor, Prasugrel (single or dual).</li>
+                <li>Inherited disorders: Hemophilia A/B, von Willebrand disease.</li>
+                <li>Acquired: liver disease / cirrhosis, thrombocytopenia, chemotherapy, etc.</li>
+              </ul>
+
+              <p class="fw-bold mb-1">Step 2 – Key Laboratory Tests</p>
+              <table class="table table-sm table-bordered">
+                <thead class="table-light">
+                  <tr>
+                    <th>Situation / Drug</th>
+                    <th>Tests</th>
+                    <th>Dental Threshold (Practical)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Warfarin</td>
+                    <td>INR (same week, ideally &lt;72 hrs)</td>
+                    <td>INR ≤ 3.5 → OK for minor–moderate surgery; &gt;3.5 → adjust / delay</td>
+                  </tr>
+                  <tr>
+                    <td>DOACs (Riva / Apixa / Edoxa)</td>
+                    <td>No routine test; Anti-Xa if available</td>
+                    <td>Use timing since last dose (12–24 hours for minor surgery)</td>
+                  </tr>
+                  <tr>
+                    <td>Dabigatran</td>
+                    <td>aPTT or Thrombin Time</td>
+                    <td>Marked prolongation → higher risk → consider delay</td>
+                  </tr>
+                  <tr>
+                    <td>Thrombocytopenia</td>
+                    <td>CBC (platelets)</td>
+                    <td>&gt; 50,000/µL → usually OK for minor oral surgery</td>
+                  </tr>
+                  <tr>
+                    <td>Liver disease</td>
+                    <td>PT/INR, LFTs</td>
+                    <td>INR &gt; 1.5–2 → coordinate with physician</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <h6 class="fw-bold mt-3">Warfarin</h6>
+              <ul>
+                <li>Proceed with minor–moderate oral surgery if <strong>INR ≤ 3.5</strong> and good local hemostasis.</li>
+                <li>INR &gt; 3.5 → defer elective care; ask physician to adjust dose and re-check INR.</li>
+                <li>Do not routinely stop warfarin just for simple extractions.</li>
+              </ul>
+
+              <h6 class="fw-bold mt-3">DOACs (Rivaroxaban, Apixaban, Dabigatran, Edoxaban)</h6>
+              <ul>
+                <li>Minor procedures: often continue DOAC; schedule 12–24 hours after last dose.</li>
+                <li>Major oral surgery: consider holding 24–48 hours (only after physician approval, adjust for renal function).</li>
+                <li>Restart usually 24 hours after secure hemostasis (per physician advice).</li>
+              </ul>
+
+              <h6 class="fw-bold mt-3">Antiplatelet Drugs</h6>
+              <ul>
+                <li>Most dental procedures (including simple extractions) can be done without stopping single or dual antiplatelet therapy.</li>
+                <li>Any interruption, especially in post-stent DAPT, must be cardiologist-guided.</li>
+                <li>If absolutely necessary to stop:
+                  <ul>
+                    <li>Aspirin / Clopidogrel → stop 5–7 days before.</li>
+                    <li>Ticagrelor → stop 3–5 days before.</li>
+                    <li>Prasugrel → stop 7 days before.</li>
+                  </ul>
+                </li>
+              </ul>
+
+              <h6 class="fw-bold mt-3">Inherited Bleeding Disorders (Hemophilia, vWD)</h6>
+              <ul>
+                <li>Always work with a hematologist.</li>
+                <li>Factor VIII/IX replacement for Hemophilia; DDAVP or factor products for relevant vWD types.</li>
+                <li>Avoid deep blocks (IANB) in uncontrolled/severe cases.</li>
+              </ul>
+
+              <h6 class="fw-bold mt-3">Local Hemostasis (All High-Risk Patients)</h6>
+              <ul>
+                <li>Atraumatic technique; remove granulation gently.</li>
+                <li>Gauze pressure 30–60 minutes.</li>
+                <li>Sutures (horizontal mattress preferred for sockets).</li>
+                <li>Local agents: Surgicel, Gelfoam, collagen sponge.</li>
+                <li>Tranexamic mouthwash 4.8%: 10 mL for 2 minutes, 4× daily for 2–5 days (if available).</li>
+                <li>Uncontrolled bleeding despite measures → hospital referral for systemic reversal / transfusion.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2.3 DIABETES -->
+        <div class="accordion-item">
+          <h2 class="accordion-header" id="headingDiabetes">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseDiabetes">
+              2.3 Diabetes Mellitus
+            </button>
+          </h2>
+          <div id="collapseDiabetes" class="accordion-collapse collapse" data-bs-parent="#condAccordion">
+            <div class="accordion-body">
+              <ul>
+                <li>Prefer morning appointments after usual meal and diabetes medication.</li>
+                <li>Acceptable RBS: roughly <strong>80–200 mg/dL</strong>.</li>
+                <li>RBS &gt; 250 mg/dL → consider deferring elective surgery / consult physician.</li>
+                <li>Watch for hypoglycemia: sweating, tremor, confusion, tachycardia – give oral glucose / juice promptly.</li>
+                <li>Minimize trauma; consider prophylactic antibiotics for poorly controlled patients undergoing invasive surgery.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2.4 RESPIRATORY -->
+        <div class="accordion-item">
+          <h2 class="accordion-header" id="headingResp">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseResp">
+              2.4 Pulmonary Disease (Asthma / COPD)
+            </button>
+          </h2>
+          <div id="collapseResp" class="accordion-collapse collapse" data-bs-parent="#condAccordion">
+            <div class="accordion-body">
+              <h6 class="fw-bold">Asthma</h6>
+              <ul>
+                <li>Ask frequency of attacks, triggers and current medications.</li>
+                <li>Ensure inhaler is brought to the appointment.</li>
+                <li>Avoid NSAIDs and sulfite-containing local anesthetics in aspirin-sensitive asthma.</li>
+              </ul>
+              <h6 class="fw-bold mt-3">COPD</h6>
+              <ul>
+                <li>Treat in semi-upright position; avoid supine for long periods.</li>
+                <li>Avoid high-flow O₂ (&gt;3 L/min) in known CO₂ retainers unless medically indicated.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2.5 LIVER & KIDNEY -->
+        <div class="accordion-item">
+          <h2 class="accordion-header" id="headingLiverKidney">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseLiverKidney">
+              2.5 Liver & Kidney Disease
+            </button>
+          </h2>
+          <div id="collapseLiverKidney" class="accordion-collapse collapse" data-bs-parent="#condAccordion">
+            <div class="accordion-body">
+              <h6 class="fw-bold">Liver Disease</h6>
+              <ul>
+                <li>Check PT/INR in cirrhosis or advanced disease.</li>
+                <li>Use paracetamol cautiously (lower total daily dose).</li>
+                <li>Avoid NSAIDs due to bleeding and renal risk.</li>
+              </ul>
+              <h6 class="fw-bold mt-3">Chronic Kidney Disease / Dialysis</h6>
+              <ul>
+                <li>Plan dental treatment for the day after dialysis (patient usually heparinized on dialysis day).</li>
+                <li>Adjust doses for renally excreted drugs.</li>
+                <li>Avoid nephrotoxic drugs (high-dose NSAIDs, some antibiotics).</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2.6 THYROID -->
+        <div class="accordion-item">
+          <h2 class="accordion-header" id="headingThyroid">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThyroid">
+              2.6 Thyroid Disorders
+            </button>
+          </h2>
+          <div id="collapseThyroid" class="accordion-collapse collapse" data-bs-parent="#condAccordion">
+            <div class="accordion-body">
+              <h6 class="fw-bold">Hyperthyroidism</h6>
+              <ul>
+                <li>Uncontrolled hyperthyroidism → high risk of thyroid storm → defer elective care.</li>
+                <li>Avoid epinephrine in uncontrolled patients; limit dose even when controlled.</li>
+              </ul>
+              <h6 class="fw-bold mt-3">Hypothyroidism</h6>
+              <ul>
+                <li>Increased sensitivity to sedatives and CNS depressants.</li>
+                <li>Short, stress-free appointments; avoid hypothermia.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2.7 EPILEPSY -->
+        <div class="accordion-item">
+          <h2 class="accordion-header" id="headingEpilepsy">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseEpilepsy">
+              2.7 Epilepsy
+            </button>
+          </h2>
+          <div id="collapseEpilepsy" class="accordion-collapse collapse" data-bs-parent="#condAccordion">
+            <div class="accordion-body">
+              <ul>
+                <li>Confirm diagnosis, medications and date of last seizure.</li>
+                <li>Avoid flashing lights or strong triggers where relevant.</li>
+                <li>Keep instrument field clear and avoid leaving instruments in mouth.</li>
+                <li>If seizure occurs: remove instruments, protect from injury, maintain airway, place in safe lateral position.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2.8 GI -->
+        <div class="accordion-item">
+          <h2 class="accordion-header" id="headingGI">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseGI">
+              2.8 Peptic Ulcer Disease / GERD
+            </button>
+          </h2>
+          <div id="collapseGI" class="accordion-collapse collapse" data-bs-parent="#condAccordion">
+            <div class="accordion-body">
+              <ul>
+                <li>Avoid routine NSAIDs and aspirin where possible.</li>
+                <li>Treat in semi-upright position if reflux symptoms are significant.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2.9 PSYCHIATRIC -->
+        <div class="accordion-item">
+          <h2 class="accordion-header" id="headingPsych">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePsych">
+              2.9 Psychiatric Disorders
+            </button>
+          </h2>
+          <div id="collapsePsych" class="accordion-collapse collapse" data-bs-parent="#condAccordion">
+            <div class="accordion-body">
+              <ul>
+                <li>Check psychotropic medications (lithium, antipsychotics, antidepressants).</li>
+                <li>Tricyclic antidepressants + epinephrine → use minimal epi; avoid high concentration vasoconstrictors.</li>
+                <li>Many psych meds cause xerostomia → emphasize caries prevention & fluoride.</li>
+                <li>Short, structured, supportive appointments.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+      </div> <!-- end accordion -->
+    </div>
+  </div>
+
+  <!-- ===========================
+       SECTION 3 — ANTIBIOTIC PROPHYLAXIS
+  ============================ -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-warning fw-bold">
+      📌 SECTION 3 — Antibiotic Prophylaxis for Infective Endocarditis
+    </div>
+    <div class="card-body">
+      <p class="mb-1 fw-bold">3.1 Indications</p>
+      <p class="mb-1">AP is recommended <strong>only</strong> in high-risk cardiac patients when the procedure involves:</p>
+      <ul>
+        <li>Manipulation of gingival tissue.</li>
+        <li>Periapical region of teeth.</li>
+        <li>Perforation of oral mucosa.</li>
+      </ul>
+      <p class="mb-1">High-risk cardiac conditions (as above in 2.1C):</p>
+      <ul>
+        <li>Prosthetic cardiac valves.</li>
+        <li>Previous infective endocarditis.</li>
+        <li>Certain congenital heart disease (unrepaired cyanotic, recent repair, residual defect).</li>
+        <li>Cardiac transplant with valvulopathy.</li>
+      </ul>
+
+      <p class="fw-bold mt-3 mb-1">3.2 Recommended Regimens (30–60 minutes before procedure)</p>
+      <div class="table-responsive">
+        <table class="table table-bordered table-sm">
+          <thead class="table-light">
+            <tr>
+              <th>Situation</th>
+              <th>Adult Dose</th>
+              <th>Paediatric Dose</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>No allergy, oral route</td>
+              <td>Amoxicillin 2 g PO</td>
+              <td>Amoxicillin 50 mg/kg PO</td>
+            </tr>
+            <tr>
+              <td>No oral route</td>
+              <td>Ampicillin 2 g IV/IM<br>or Cefazolin / Ceftriaxone 1 g IV/IM</td>
+              <td>50 mg/kg IV/IM</td>
+            </tr>
+            <tr>
+              <td>Penicillin allergy, oral route</td>
+              <td>Cephalexin 2 g PO<br>or Azithromycin 500 mg PO<br>or Clarithromycin 500 mg PO</td>
+              <td>50 mg/kg PO</td>
+            </tr>
+            <tr>
+              <td>Penicillin allergy &amp; no oral route</td>
+              <td>Cefazolin / Ceftriaxone 1 g IV/IM</td>
+              <td>50 mg/kg IV/IM</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="text-danger small mb-0">
+        Avoid cephalosporins in patients with history of anaphylaxis to penicillin.<br>
+        Clindamycin is <strong>no longer routinely recommended</strong> for IE prophylaxis.
+      </p>
+    </div>
+  </div>
+
+  <!-- ===========================
+       SECTION 4 — EMERGENCY KIT
+  ============================ -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-danger text-white fw-bold">
+      📌 SECTION 4 — Basic Emergency Response Kit (Dental Clinic)
+    </div>
+    <div class="card-body">
+      <ul>
+        <li>Nitroglycerin tablets / spray (0.4 mg SL).</li>
+        <li>Oxygen cylinder with appropriate delivery system (nasal cannula or mask).</li>
+        <li>Albuterol (salbutamol) inhaler.</li>
+        <li>Glucose gel / tablets or sugary drink.</li>
+        <li>Epinephrine auto-injector (for anaphylaxis, where available).</li>
+        <li>Tranexamic acid mouthwash (if using for high-risk extractions).</li>
+        <li>Blood pressure monitor and pulse oximeter.</li>
+      </ul>
+    </div>
+  </div>
+
+</div> <!-- /container -->
+
+
+<!-- ===========================
+     JAVASCRIPT FOR WIZARD
+=========================== -->
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+  // -------------------------------
+  // 1. Protocol Data Object
+  // -------------------------------
+  const protocols = {
+    cardio: {
+      label: "Cardiovascular Disease",
+      subconditions: {
+        ischemic: {
+          label: "Ischemic Heart Disease / Post-MI / Angina",
+          questions: [
+            "When was the MI / cardiac event? (&lt; 6 months or &gt; 6 months?)",
+            "Current symptoms: chest pain, dyspnea on exertion, orthopnea?",
+            "Current medications (beta-blockers, nitrates, antiplatelets, anticoagulants)?",
+            "Can the patient climb one flight of stairs without symptoms?",
+            "Any recent change in frequency or severity of angina?"
+          ],
+          proceed: [
+            "MI &gt; 6 months and stable → elective dental care allowed with stress reduction.",
+            "Check BP and pulse before starting.",
+            "Keep nitroglycerin at chair-side; have oxygen available."
+          ],
+          management: [
+            "Short, morning appointments; avoid excessive stress.",
+            "Limit epinephrine to ~0.04 mg (≈ 2 cartridges of 1:100,000).",
+            "Avoid intravascular injection; aspirate before injecting LA.",
+            "Prefer paracetamol for post-op pain; avoid routine NSAIDs if on antiplatelets."
+          ],
+          defer: [
+            "MI within past 30 days or unstable angina.",
+            "Chest pain at rest or minimal exertion.",
+            "Marked dyspnea or decompensated heart failure."
+          ]
+        },
+        hypertension: {
+          label: "Hypertension",
+          questions: [
+            "What is the usual blood pressure at home / clinic?",
+            "Any history of stroke, TIA, kidney disease or end-organ damage?",
+            "Which antihypertensives are used and how regularly?",
+            "Any history of hypertensive emergency / urgency?"
+          ],
+          proceed: [
+            "BP ≤ 160/100 → routine dental care is acceptable.",
+            "BP 160–179 / 100–109 → treat urgent needs, monitor during visit."
+          ],
+          management: [
+            "Limit epinephrine and avoid concentrated vasoconstrictor.",
+            "Avoid rapid changes in chair position.",
+            "Schedule short visits and avoid excessive anxiety."
+          ],
+          defer: [
+            "BP ≥ 180/110 on repeat measurement.",
+            "Any symptoms of chest pain, severe headache, visual disturbance or neurologic deficit."
+          ]
+        },
+        valve_ie: {
+          label: "Valve Disease / IE Risk",
+          questions: [
+            "Any prosthetic heart valve?",
+            "History of infective endocarditis?",
+            "Any congenital heart disease (unrepaired, partially repaired or with residual defects)?",
+            "History of cardiac transplant with valve problems?"
+          ],
+          proceed: [
+            "For high-risk cardiac patients, antibiotic prophylaxis is indicated only if procedure manipulates gingiva / periapical region / perforates oral mucosa.",
+            "Non-invasive procedures (radiographs, impressions, fluoride) → no prophylaxis needed."
+          ],
+          management: [
+            "If indication for AP present, follow standard AHA-based regimens (see Section 3).",
+            "Avoid unnecessary multiple short antibiotic courses."
+          ],
+          defer: [
+            "Fever or suspected active infection → refer to physician / cardiologist first.",
+            "Unclear cardiac status without recent evaluation."
+          ]
+        }
+      }
+    },
+
+    bleeding: {
+      label: "Bleeding Disorders & Antithrombotics",
+      subconditions: {
+        warfarin: {
+          label: "On Warfarin",
+          questions: [
+            "Indication for warfarin (e.g. valve, AF, DVT)?",
+            "Latest INR value and date (preferably within last 72 hours)?",
+            "Any history of prolonged bleeding after minor surgery / injury?"
+          ],
+          proceed: [
+            "If INR ≤ 3.5 → minor–moderate dental surgery usually safe with local hemostasis.",
+            "Do NOT routinely stop warfarin for simple extractions."
+          ],
+          management: [
+            "Use atraumatic technique with sutures and local hemostatic agents.",
+            "Provide written instructions and consider tranexamic mouthwash if available.",
+            "Schedule in morning to allow same-day observation."
+          ],
+          defer: [
+            "INR > 3.5 for planned extractions / surgery.",
+            "No recent INR value in high-risk cardiac patients.",
+            "Uncontrolled bleeding despite local measures → refer to hospital for reversal (Vit K / PCC / FFP)."
+          ]
+        },
+        doac: {
+          label: "On DOAC (Rivaroxaban / Apixaban / Dabigatran / Edoxaban)",
+          questions: [
+            "Which DOAC, dose and frequency?",
+            "What time was the last dose taken?",
+            "Any kidney disease or reduced renal function?",
+            "Previous episodes of heavy bleeding?"
+          ],
+          proceed: [
+            "For minor procedures, continue DOAC and schedule 12–24 hours after last dose.",
+            "For simple extractions, emphasize meticulous local hemostasis."
+          ],
+          management: [
+            "Consider doing procedures early in the day.",
+            "Avoid additional anticoagulant / antiplatelet drugs without physician input.",
+            "Use sutures + hemostatic agents routinely."
+          ],
+          defer: [
+            "Planned major surgery with multiple extractions / flaps → coordinate with physician to adjust dosing.",
+            "Any uncontrolled bleeding or suspected overdose."
+          ]
+        },
+        antiplatelet: {
+          label: "On Antiplatelets (Aspirin / Clopidogrel / DAPT)",
+          questions: [
+            "Single or dual antiplatelet therapy?",
+            "Reason (recent stent, stroke, etc.) and when was event?",
+            "Any previous problem with bleeding after dental work?"
+          ],
+          proceed: [
+            "Most dental procedures, including simple extractions, can be done without stopping antiplatelets.",
+            "Dual therapy after stent is critical — never stop without cardiologist approval."
+          ],
+          management: [
+            "Plan local hemostatic measures (suturing, hemostatic agents, pressure).",
+            "Inform patient about possibility of oozing for 24–48 hours."
+          ],
+          defer: [
+            "Cardiologist explicitly advises against procedure at this time.",
+            "Very high bleeding risk procedure without ability to manage locally."
+          ]
+        },
+        inherited: {
+          label: "Hemophilia / vWD / Platelet Disorders",
+          questions: [
+            "Exact diagnosis and severity (mild / moderate / severe)?",
+            "Last hematology review and current factor / DDAVP plan?",
+            "Any history of serious bleeding after dental work?"
+          ],
+          proceed: [
+            "Only after hematologist provides a peri-operative plan (factor replacement / DDAVP).",
+            "Ensure emergency hospital access is clear if needed."
+          ],
+          management: [
+            "Use maximum local hemostatic support.",
+            "Avoid IAN blocks and deep injections in uncontrolled / severe cases."
+          ],
+          defer: [
+            "No hematology support available or no agreed plan for factor replacement.",
+            "Severe disease with very low factor levels without cover."
+          ]
+        }
+      }
+    },
+
+    diabetes: {
+      label: "Diabetes Mellitus",
+      subconditions: {
+        dm: {
+          label: "Diabetes (Type 1 / Type 2)",
+          questions: [
+            "Type of diabetes and duration?",
+            "Usual fasting / random sugar levels and last HbA1c (if known)?",
+            "Any episodes of hypoglycemia recently?",
+            "Timing of meals and medication on day of appointment?"
+          ],
+          proceed: [
+            "RBS around 80–200 mg/dL is generally acceptable.",
+            "Patient has eaten and taken regular diabetes medication."
+          ],
+          management: [
+            "Morning, short appointments; avoid long fasting.",
+            "Keep glucose source ready in clinic.",
+            "Minimize trauma and infection; consider antibiotics in poorly controlled cases having surgery."
+          ],
+          defer: [
+            "RBS > 300 mg/dL or symptomatic hyperglycemia.",
+            "Recurrent hypoglycemic episodes with poor awareness."
+          ]
+        }
+      }
+    },
+
+    respiratory: {
+      label: "Pulmonary Disease",
+      subconditions: {
+        asthma: {
+          label: "Asthma",
+          questions: [
+            "Frequency and severity of attacks?",
+            "Current medication (inhaled steroids, LABA, etc.)?",
+            "Known triggers (exercise, aspirin, stress)?",
+            "Any recent hospitalization / ICU admission?"
+          ],
+          proceed: [
+            "Well-controlled asthma with inhaler available → routine care allowed.",
+            "Avoid known triggers in clinic (e.g. aerosols if extreme sensitivity)."
+          ],
+          management: [
+            "Ensure patient brings inhaler and place within reach.",
+            "Avoid NSAIDs and sulfite-containing LA in aspirin-sensitive asthma.",
+            "Treat in comfortable semi-upright position."
+          ],
+          defer: [
+            "Recent severe attack or hospitalization without stabilization.",
+            "Acute wheezing or respiratory distress at visit."
+          ]
+        },
+        copd: {
+          label: "COPD",
+          questions: [
+            "Baseline breathlessness and exercise tolerance?",
+            "Use of home oxygen or recent exacerbations?",
+            "Smoking status?"
+          ],
+          proceed: [
+            "Stable COPD with baseline function → dental care with precautions."
+          ],
+          management: [
+            "Semi-upright position; avoid long supine time.",
+            "Avoid high-flow oxygen in known CO₂ retainers unless medically indicated.",
+            "Allow breaks during long treatment."
+          ],
+          defer: [
+            "Acute exacerbation with significant breathlessness / infection.",
+            "Resting oxygen saturation very low without medical support."
+          ]
+        }
+      }
+    },
+
+    liver_kidney: {
+      label: "Liver & Kidney Disease",
+      subconditions: {
+        liver: {
+          label: "Chronic Liver Disease / Cirrhosis",
+          questions: [
+            "Underlying diagnosis (hepatitis, cirrhosis, etc.)?",
+            "Any history of jaundice, ascites, variceal bleed?",
+            "Recent LFTs and INR if available?"
+          ],
+          proceed: [
+            "Well-compensated disease with acceptable INR → minor work usually safe."
+          ],
+          management: [
+            "Use paracetamol in reduced total daily dose; avoid high-dose / prolonged use.",
+            "Avoid NSAIDs due to bleeding and renal risk.",
+            "Monitor for bleeding tendency and bruising."
+          ],
+          defer: [
+            "INR markedly prolonged (e.g. > 1.5–2) without correction.",
+            "Decompensated cirrhosis with active complications."
+          ]
+        },
+        ckd: {
+          label: "Chronic Kidney Disease / Dialysis",
+          questions: [
+            "Stage of CKD and dialysis schedule?",
+            "Any fluid restrictions or specific medications (erythropoietin, phosphate binders)?"
+          ],
+          proceed: [
+            "Plan treatment on the day after dialysis if patient is stable."
+          ],
+          management: [
+            "Adjust doses of renally excreted drugs.",
+            "Avoid nephrotoxic medications where possible (e.g. NSAIDs)."
+          ],
+          defer: [
+            "Severe uncontrolled hypertension or fluid overload.",
+            "Recent complicated dialysis session with instability."
+          ]
+        }
+      }
+    },
+
+    thyroid: {
+      label: "Thyroid Disorders",
+      subconditions: {
+        hyper: {
+          label: "Hyperthyroidism",
+          questions: [
+            "Is condition treated / controlled (medications / surgery / radioiodine)?",
+            "Symptoms of thyrotoxicosis (palpitations, heat intolerance, tremor)?"
+          ],
+          proceed: [
+            "Clinically and biochemically controlled → dental care allowed with care."
+          ],
+          management: [
+            "Use minimal epinephrine and avoid high doses of vasoconstrictor.",
+            "Reduce stress and anxiety; short appointments."
+          ],
+          defer: [
+            "Uncontrolled hyperthyroidism (tachycardia, weight loss, tremor).",
+            "Suspected thyroid storm → medical emergency."
+          ]
+        },
+        hypo: {
+          label: "Hypothyroidism",
+          questions: [
+            "On thyroxine? Dose and compliance?",
+            "Any symptoms of severe hypothyroidism (very fatigued, cold intolerance, weight gain)?"
+          ],
+          proceed: [
+            "Stable on replacement → routine care allowed."
+          ],
+          management: [
+            "Use sedatives cautiously; increased sensitivity to CNS depressants.",
+            "Avoid hypothermia; keep clinic comfortably warm."
+          ],
+          defer: [
+            "Severe untreated hypothyroidism with lethargy / bradycardia.",
+            "Any suspicion of myxedema crisis."
+          ]
+        }
+      }
+    },
+
+    epilepsy: {
+      label: "Epilepsy / Seizures",
+      subconditions: {
+        epilepsy: {
+          label: "Epilepsy",
+          questions: [
+            "Type of seizures and frequency?",
+            "Last seizure and typical duration?",
+            "Current antiepileptic medications and compliance?"
+          ],
+          proceed: [
+            "Well-controlled epilepsy with infrequent seizures → routine care allowed."
+          ],
+          management: [
+            "Avoid triggers; keep instruments out of mouth when not needed.",
+            "Have space and support ready in case of seizure.",
+            "If seizure occurs: protect from injury, maintain airway, do not force anything into mouth."
+          ],
+          defer: [
+            "Very frequent uncontrolled seizures.",
+            "Recent status epilepticus or hospitalization without stabilization."
+          ]
+        }
+      }
+    },
+
+    gi: {
+      label: "Peptic Ulcer / GERD",
+      subconditions: {
+        pud_gerd: {
+          label: "Peptic Ulcer Disease / GERD",
+          questions: [
+            "Active ulcer or symptoms (epigastric pain, reflux)?",
+            "Use of PPIs, H2 blockers or NSAIDs?",
+            "Any history of GI bleeding?"
+          ],
+          proceed: [
+            "Stable on treatment without acute bleeding symptoms → routine dental care."
+          ],
+          management: [
+            "Avoid or minimize NSAIDs and aspirin where possible.",
+            "Treat in semi-upright position if reflux is significant."
+          ],
+          defer: [
+            "Active GI bleeding, melena or severe pain → require medical care first."
+          ]
+        }
+      }
+    },
+
+    psychiatric: {
+      label: "Psychiatric Disorders",
+      subconditions: {
+        psych: {
+          label: "Psychiatric Illness on Medication",
+          questions: [
+            "Diagnosis (depression, bipolar, schizophrenia, anxiety, etc.)?",
+            "Current medications (TCAs, SSRIs, antipsychotics, lithium, etc.)?",
+            "Any history of suicide attempt or severe behavioural instability?"
+          ],
+          proceed: [
+            "Stable, followed by psychiatrist and compliant with medication."
+          ],
+          management: [
+            "Short, structured appointments with clear explanation.",
+            "Beware of TCA + epinephrine interaction → minimize epi dose.",
+            "Address xerostomia with fluoride and caries-prevention advice."
+          ],
+          defer: [
+            "Severe uncontrolled psychosis or suicidal ideation.",
+            "Patient unable to give valid consent or cooperate safely."
+          ]
+        }
+      }
+    },
+
+    ab_prophylaxis: {
+      label: "Antibiotic Prophylaxis (Cardiac)",
+      subconditions: {
+        ab: {
+          label: "High-Risk Cardiac — IE Prophylaxis",
+          questions: [
+            "Does the patient have a prosthetic valve or prior IE?",
+            "Any high-risk congenital heart disease or transplant with valve disease?",
+            "Is the planned procedure involving gingiva / periapical tissues / mucosal perforation?"
+          ],
+          proceed: [
+            "If high-risk cardiac AND invasive dental procedure: give AP 30–60 minutes before.",
+            "If no high-risk condition or non-invasive procedure: AP not indicated."
+          ],
+          management: [
+            "Use recommended regimens: Amoxicillin 2 g orally in adults (see table).",
+            "Consider alternative agents in penicillin allergy per Section 3.",
+            "Document clearly that AP was given (drug, dose, time)."
+          ],
+          defer: [
+            "Fever or suspected active infection without medical assessment.",
+            "Unclear cardiac diagnosis — clarify with physician/cardiologist first."
+          ]
+        }
+      }
+    }
+  };
+
+  // -------------------------------
+  // 2. DOM References
+  // -------------------------------
+  const categorySelect     = document.getElementById("categorySelect");
+  const subConditionSelect = document.getElementById("subConditionSelect");
+
+  const questionsList   = document.getElementById("questionsList");
+  const questionsEmpty  = document.getElementById("questionsEmpty");
+  const proceedList     = document.getElementById("proceedList");
+  const managementList  = document.getElementById("managementList");
+  const deferList       = document.getElementById("deferList");
+  const managementEmpty = document.getElementById("managementEmpty");
+
+  // Utility to clear lists
+  function clearLists() {
+    [questionsList, proceedList, managementList, deferList].forEach(ul => ul.innerHTML = "");
+  }
+
+  function populateSubconditions(catKey) {
+    subConditionSelect.innerHTML = "";
+    subConditionSelect.disabled = true;
+
+    if (!catKey || !protocols[catKey]) {
+      const opt = document.createElement("option");
+      opt.value = "";
+      opt.textContent = "-- Select a category first --";
+      subConditionSelect.appendChild(opt);
+      return;
+    }
+
+    const firstOpt = document.createElement("option");
+    firstOpt.value = "";
+    firstOpt.textContent = "-- Select Condition --";
+    subConditionSelect.appendChild(firstOpt);
+
+    const sub = protocols[catKey].subconditions;
+    Object.keys(sub).forEach(key => {
+      const o = document.createElement("option");
+      o.value = key;
+      o.textContent = sub[key].label;
+      subConditionSelect.appendChild(o);
+    });
+
+    subConditionSelect.disabled = false;
+  }
+
+  function renderProtocol(catKey, subKey) {
+    clearLists();
+    questionsEmpty.style.display  = "block";
+    managementEmpty.style.display = "block";
+
+    if (!catKey || !subKey) return;
+    const cat = protocols[catKey];
+    if (!cat) return;
+    const sub = cat.subconditions[subKey];
+    if (!sub) return;
+
+    function fillList(ul, arr) {
+      ul.innerHTML = "";
+      if (!arr || arr.length === 0) {
+        const li = document.createElement("li");
+        li.className = "text-muted";
+        li.textContent = "No items defined.";
+        ul.appendChild(li);
+      } else {
+        arr.forEach(txt => {
+          const li = document.createElement("li");
+          li.innerHTML = txt;
+          ul.appendChild(li);
+        });
+      }
+    }
+
+    fillList(questionsList, sub.questions);
+    fillList(proceedList, sub.proceed);
+    fillList(managementList, sub.management);
+    fillList(deferList, sub.defer);
+
+    questionsEmpty.style.display  = "none";
+    managementEmpty.style.display = "none";
+  }
+
+  // -------------------------------
+  // 3. Event Handlers
+  // -------------------------------
+  if (categorySelect) {
+    categorySelect.addEventListener("change", function () {
+      const catKey = this.value;
+      populateSubconditions(catKey);
+      clearLists();
+      questionsEmpty.style.display  = "block";
+      managementEmpty.style.display = "block";
+    });
+  }
+
+  if (subConditionSelect) {
+    subConditionSelect.addEventListener("change", function () {
+      const catKey = categorySelect.value;
+      const subKey = this.value;
+      renderProtocol(catKey, subKey);
+    });
+  }
+
+});
+</script>
+
+{% endblock %}

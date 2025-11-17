@@ -1,0 +1,370 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container mt-4 mb-5" style="max-width: 950px;">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="text-primary fw-bold">📝 Patient Registration</h3>
+    <a href="{{ url_for('dashboard_main') }}" class="btn btn-secondary">⬅ Back to Dashboard</a>
+  </div>
+
+  <form method="POST" action="{{ url_for('patient_registration') }}" class="bg-white shadow p-4 rounded">
+
+    <!-- BASIC INFO -->
+    <h5 class="border-bottom pb-2 text-secondary">1️⃣ Basic Information</h5>
+    <div class="row mt-3">
+
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Full Name</label>
+        <input class="form-control" name="full_name" required>
+      </div>
+
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Father / Spouse Name</label>
+        <input class="form-control" name="father_or_spouse_name">
+      </div>
+
+      <div class="col-md-3 mb-3">
+        <label class="form-label">Gender</label>
+        <select name="gender" id="gender" class="form-select" required onchange="handleGenderChange()">
+          <option value="">Select</option>
+          <option>Male</option>
+          <option>Female</option>
+          <option>Other</option>
+        </select>
+      </div>
+
+      <div class="col-md-3 mb-3">
+        <label class="form-label">Age / DOB</label>
+        <input class="form-control" name="dob_or_age">
+      </div>
+
+      <div class="col-md-3 mb-3">
+        <label class="form-label">Marital Status</label>
+        <select name="marital_status" class="form-select">
+          <option value="">Select</option>
+          <option>Single</option>
+          <option>Married</option>
+          <option>Other</option>
+        </select>
+      </div>
+
+      <div class="col-md-3 mb-3">
+        <label class="form-label">Occupation</label>
+        <input class="form-control" name="occupation">
+      </div>
+
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Contact Number</label>
+        <input class="form-control" name="contact">
+      </div>
+
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Email Address</label>
+        <input type="email" class="form-control" name="email">
+      </div>
+
+      <div class="col-md-4 mb-3">
+        <label class="form-label">CNIC / ID No.</label>
+        <input class="form-control" name="cnic">
+      </div>
+
+      <div class="col-12 mb-3">
+        <label class="form-label">Address</label>
+        <input class="form-control" name="address">
+      </div>
+    </div>
+
+    <hr>
+
+    <!-- MEDICAL HISTORY -->
+    <h5 class="text-primary mt-4">🩺 Medical History (Permanent)</h5>
+    <p class="text-muted small">Select only the conditions that apply to the patient.</p>
+
+    <div class="row">
+      <div class="col-md-6">
+
+        {% for field, label in {
+          'heart_disease':'Heart Disease',
+          'blood_pressure':'High Blood Pressure',
+          'diabetes':'Diabetes',
+          'asthma':'Asthma',
+          'tuberculosis':'Tuberculosis',
+          'hepatitis':'Hepatitis / Jaundice'
+        }.items() %}
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" name="{{ field }}">
+          <label class="form-check-label">{{ label }}</label>
+        </div>
+        {% endfor %}
+
+      </div>
+
+      <div class="col-md-6">
+
+        {% for field, label in {
+          'bleeding_disorder':'Bleeding Disorder',
+          'epilepsy':'Epilepsy',
+          'thyroid_disorder':'Thyroid Disorder',
+          'kidney_disease':'Kidney Disease',
+          'stomach_ulcers':'Stomach Ulcers',
+          'psychiatric_disorder':'Psychiatric Disorder'
+        }.items() %}
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" name="{{ field }}">
+          <label class="form-check-label">{{ label }}</label>
+        </div>
+        {% endfor %}
+
+      </div>
+    </div>
+
+    <!-- PREGNANCY -->
+    <div id="female_block" class="mt-4 p-3 rounded" style="display:none; background:#fff8e1;">
+      <h6 class="text-primary">🤰 Pregnancy & Breastfeeding</h6>
+
+      <div class="form-check mt-2">
+        <input class="form-check-input" type="checkbox" name="pregnant" id="pregnant" onchange="togglePregnancyWeeks()">
+        <label class="form-check-label">Currently Pregnant?</label>
+      </div>
+
+      <div id="pregnancy_weeks_div" class="mt-2" style="display:none;">
+        <label class="form-label">Months of Pregnancy</label>
+        <input type="number" min="1" max="9" class="form-control" name="pregnancy_weeks">
+      </div>
+
+      <div class="form-check mt-3">
+        <input class="form-check-input" type="checkbox" name="breastfeeding">
+        <label class="form-check-label">Currently Breastfeeding?</label>
+      </div>
+    </div>
+
+    <hr>
+
+    <h6 class="text-primary">Additional Information</h6>
+    <div class="mb-3">
+      <label>Medications</label>
+      <textarea name="medications" class="form-control" rows="2"></textarea>
+    </div>
+
+    <div class="mb-3">
+      <label>Allergies</label>
+      <textarea name="allergies" class="form-control" rows="2"></textarea>
+    </div>
+
+    <div class="mb-3">
+      <label>Other Health Issues</label>
+      <textarea name="other_health" class="form-control" rows="2"></textarea>
+    </div>
+
+    <div class="mb-3">
+      <label>Past Surgery / Hospitalization</label>
+      <textarea name="surgery_history" class="form-control" rows="2"></textarea>
+    </div>
+
+    <hr>
+
+    <!-- DENTAL HISTORY -->
+    <h5 class="text-primary mt-4">🦷 Dental History</h5>
+
+    <!-- Last Visit -->
+    <div class="row mt-3">
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Last Dental Visit</label>
+        <input class="form-control" name="last_dental_visit">
+      </div>
+
+      <div class="col-md-6 mb-3">
+        <label class="form-label">Reason for Last Visit</label>
+        <input class="form-control" name="last_dental_reason">
+      </div>
+    </div>
+
+    <hr>
+
+    <!-- Previous Treatments -->
+    <h6 class="text-primary">Previous Dental Treatments</h6>
+    <div class="row">
+      {% for field,label in {
+        'treat_fillings':'Fillings',
+        'treat_rct':'Root Canal',
+        'treat_crowns':'Crowns / Bridges',
+        'treat_extractions':'Extractions',
+        'treat_scaling':'Scaling & Cleaning',
+        'treat_denture':'Dentures',
+        'treat_braces':'Braces / Ortho',
+        'treat_implant':'Implants'
+      }.items() %}
+      <div class="col-md-3">
+        <div class="form-check mb-2">
+          <input type="checkbox" class="form-check-input" name="{{ field }}">
+          <label class="form-check-label">{{ label }}</label>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="mb-3">
+      <label>Other Treatments</label>
+      <input class="form-control" name="treat_other">
+    </div>
+
+    <hr>
+
+    <!-- Gum Health -->
+    <h6 class="text-primary">Gum Health</h6>
+    <div class="row">
+      {% for field,label in {
+        'gum_bleeding':'Bleeding Gums',
+        'gum_loose':'Loose Teeth',
+        'gum_badbreath':'Bad Breath',
+        'gum_none':'None'
+      }.items() %}
+      <div class="col-md-3">
+        <div class="form-check mb-2">
+          <input type="checkbox" class="form-check-input" name="{{ field }}">
+          <label class="form-check-label">{{ label }}</label>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <hr>
+
+    <!-- Sensitivity -->
+    <h6 class="text-primary">Caries / Sensitivity</h6>
+    <div class="row">
+      {% for field,label in {
+        'sensitive_teeth':'Tooth Sensitivity',
+        'frequent_cavities':'Frequent Cavities',
+        'caries_none':'None'
+      }.items() %}
+      <div class="col-md-4">
+        <div class="form-check mb-2">
+          <input type="checkbox" class="form-check-input" name="{{ field }}">
+          <label class="form-check-label">{{ label }}</label>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <hr>
+
+    <!-- Trauma -->
+    <h6 class="text-primary">Oral / Jaw Trauma</h6>
+    <div class="row">
+      {% for field,label in {
+        'fractured_tooth':'Fractured Tooth',
+        'jaw_accident':'Jaw Accident / Injury',
+        'trauma_none':'None'
+      }.items() %}
+      <div class="col-md-4">
+        <div class="form-check mb-2">
+          <input type="checkbox" class="form-check-input" name="{{ field }}">
+          <label class="form-check-label">{{ label }}</label>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <hr>
+
+<h6 class="text-primary">Soft Tissue / Oral Mucosa</h6>
+<div class="mb-3">
+  <textarea name="soft_tissue_notes" class="form-control" rows="2"
+            placeholder="Any ulcers, lesions, swelling, abnormal tissue…"></textarea>
+</div>
+
+<hr>
+
+    <!-- Habits -->
+    <h6 class="text-primary">Habits</h6>
+    <div class="row">
+      {% for field,label in {
+        'uses_tobacco':'Tobacco',
+        'uses_naswar':'Naswar',
+        'uses_paan':'Paan',
+        'uses_smoke':'Smoking'
+      }.items() %}
+      <div class="col-md-3 mb-2">
+        <div class="form-check">
+          <input type="checkbox" class="form-check-input" name="{{ field }}">
+          <label class="form-check-label">{{ label }}</label>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="mb-3">
+      <label>Smoking Frequency</label>
+      <input class="form-control" name="smoking_frequency">
+    </div>
+
+    <hr>
+
+<h6 class="text-primary">TMJ & Bite</h6>
+<div class="row">
+  <div class="col-md-4">
+    <div class="form-check">
+      <input type="checkbox" class="form-check-input" name="tmj_issue">
+      <label class="form-check-label">TMJ Issue Present?</label>
+    </div>
+  </div>
+</div>
+
+<div class="mt-2">
+  <textarea name="tmj_notes" class="form-control" rows="2"
+            placeholder="Clicking, pain, deviation, limited opening…"></textarea>
+</div>
+
+<hr>
+
+<h6 class="text-primary">Oral Hygiene & Caries Risk</h6>
+<div class="row mb-3">
+  <div class="col-md-6">
+    <label class="form-label">Oral Hygiene</label>
+    <select name="oral_hygiene" class="form-select">
+      <option value="">Select</option>
+      <option>Good</option>
+      <option>Fair</option>
+      <option>Poor</option>
+    </select>
+  </div>
+
+  <div class="col-md-6">
+    <label class="form-label">Caries Risk</label>
+    <select name="caries_risk" class="form-select">
+      <option value="">Select</option>
+      <option>Low</option>
+      <option>Moderate</option>
+      <option>High</option>
+    </select>
+  </div>
+</div>
+
+    <hr>
+
+    <!-- Extra Notes -->
+    <div class="mb-3">
+      <label>Additional Dental Notes</label>
+      <textarea name="dental_notes" class="form-control" rows="2"></textarea>
+    </div>
+
+    <div class="d-flex justify-content-end mt-4">
+      <button type="submit" class="btn btn-primary px-4 py-2">💾 Register Patient</button>
+    </div>
+
+  </form>
+</div>
+
+<script>
+function handleGenderChange() {
+  const gender = document.getElementById('gender').value;
+  document.getElementById('female_block').style.display = (gender === "Female") ? "block" : "none";
+}
+
+function togglePregnancyWeeks() {
+  document.getElementById('pregnancy_weeks_div').style.display =
+      document.getElementById('pregnant').checked ? "block" : "none";
+}
+</script>
+
+{% endblock %}

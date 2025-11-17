@@ -1,0 +1,1044 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container py-4">
+
+  <h4 class="text-primary mb-3">➕ Add Treatment for {{ patient.full_name }}</h4>
+
+  <form method="POST" enctype="multipart/form-data" id="treatmentForm" novalidate>
+
+    <!-- ============================
+         CASE ID SYSTEM (UPDATED)
+         ============================ -->
+    <div class="mb-3 mt-3">
+      <label class="form-label fw-bold">Case ID (Optional)</label>
+
+      <select name="case_id_select" id="case_id_select" class="form-select mb-2">
+        <option value="">-- Start New Case / No Link --</option>
+        {% for case in cases %}
+        <option value="{{ case.case_id }}">{{ case.case_id }}</option>
+        {% endfor %}
+      </select>
+
+      <input type="text" name="case_id_manual" id="case_id_manual" class="form-control"
+             placeholder="Or enter Case ID manually">
+
+      <input type="hidden" name="case_id" id="final_case_id">
+
+      <div class="form-text small text-muted">
+        Leave blank to auto-generate a new Case ID.
+      </div>
+    </div>
+
+    <!-- ============================
+         ASSIGN DENTIST
+         ============================ -->
+    <div class="mb-3">
+      <label class="form-label fw-bold">Assign Dentist <span class="text-danger">*</span></label>
+      <select name="dentist_id" class="form-select" id="dentist_id" required>
+        <option value="">-- Select Dentist --</option>
+        {% for dentist in dentists %}
+        <option value="{{ dentist.id }}">{{ dentist.name }}{% if dentist.specialization %} — {{ dentist.specialization }}{% endif %}</option>
+        {% endfor %}
+      </select>
+      <div class="invalid-feedback">Please select a dentist.</div>
+    </div>
+
+    <!-- ============================
+         CATEGORY & TREATMENT
+         ============================ -->
+    <div class="mb-3">
+      <label class="form-label">Treatment Category <span class="text-danger">*</span></label>
+      <select class="form-select" id="treatment_category" name="treatment_category" required>
+        <option value="">-- Select Category --</option>
+        <option>Root Canal Therapy (RCT)</option>
+        <option>Fillings</option>
+        <option>Scaling & Periodontal</option>
+        <option>Crown & Bridge</option>
+        <option>Dentures</option>
+        <option>Implants</option>
+        <option>Extraction / Minor Oral Surgery</option>
+        <option>Pediatric Dentistry</option>
+        <option>Orthodontics</option>
+        <option>Cosmetic</option>
+        <option>General</option>
+        <option>Other</option>
+      </select>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Treatment Type <span class="text-danger">*</span></label>
+      <select class="form-select" id="treatment_type" name="treatment_type" required>
+        <option value="">-- Select Treatment --</option>
+      </select>
+      <div class="invalid-feedback">Please select a treatment type.</div>
+    </div>
+
+    <!-- Quick Tooth Suggestions -->
+    <div id="tooth_suggestions" class="mb-2" style="display:none;">
+      <label class="form-label">Quick Tooth Suggestions:</label>
+      <div id="tooth_sug_buttons" class="d-flex flex-wrap gap-2"></div>
+    </div>
+
+    <!-- Single Tooth -->
+    <div id="single_tooth_section" class="mb-3" style="display:none;">
+      <label class="form-label">Tooth (FDI: UR1, UL6...)</label>
+      <div class="row mb-2">
+        <div class="col-md-6">
+          <select class="form-select" id="quadrant">
+            <option value="">-- Select Quadrant --</option>
+            <option value="UR">Upper Right</option>
+            <option value="UL">Upper Left</option>
+            <option value="LL">Lower Left</option>
+            <option value="LR">Lower Right</option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <select class="form-select" id="tooth_num">
+            <option value="">-- Select Tooth --</option>
+            {% for i in range(1,9) %}
+            <option value="{{ i }}">{{ i }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="form-check mb-2">
+        <input class="form-check-input" type="checkbox" id="pediatric_toggle">
+        <label class="form-check-label">Pediatric (A–E)</label>
+      </div>
+      <input type="hidden" id="tooth_number" name="tooth_number">
+    </div>
+
+    <!-- Multi-Tooth / Site (for bridge, implant, quadrant, etc.) -->
+    <div id="multi_tooth_section" class="mb-3" style="display:none;">
+      <label class="form-label">Teeth / Site</label>
+      <input type="text" class="form-control" name="multi_tooth" placeholder="e.g. UR4–UR6 span, LL6 site, lower right quadrant">
+    </div>
+
+    <!-- EXTRACTION MODULE -->
+    <div id="extraction_section" class="border rounded p-3 mb-3" style="display:none;">
+      <h6 class="text-primary mb-3">🦷 Extraction Details</h6>
+
+      <label class="form-label fw-bold">Extraction Type</label>
+      <select class="form-select mb-3" id="extraction_type" name="extraction_type">
+        <option value="">-- Select Type --</option>
+        <option>Simple (Non-surgical)</option>
+        <option>Surgical Extraction</option>
+      </select>
+
+      <div id="surgical_options" style="display:none;">
+
+        <label class="form-label fw-bold">Local Anesthesia Used</label>
+        <select class="form-select mb-3" name="la_type" id="la_type">
+          <option value="">-- Select Anesthetic --</option>
+          <option>Lignocaine 2% 1:100k</option>
+          <option>Lignocaine 2% 1:80k</option>
+          <option>Articaine 4% 1:100k</option>
+          <option>Mepivacaine 2%</option>
+          <option>Mepivacaine 3% plain</option>
+          <option>Bupivacaine 0.5% Epi</option>
+        </select>
+
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <label class="form-label fw-bold">Amount Used (ml)</label>
+            <input type="text" class="form-control" name="la_volume" id="la_volume" placeholder="e.g., 2.0">
+          </div>
+        </div>
+
+        <label class="form-label fw-bold">Impaction Type</label>
+        <select class="form-select mb-3" name="impaction_type" id="impaction_type">
+          <option value="">-- Select --</option>
+          <option>Mesioangular</option>
+          <option>Distoangular</option>
+          <option>Horizontal</option>
+          <option>Vertical</option>
+          <option>Bucco-lingual</option>
+          <option>Others</option>
+        </select>
+
+        <label class="form-label fw-bold">Difficulty Level</label>
+        <select class="form-select mb-3" name="extraction_difficulty" id="extraction_difficulty">
+          <option value="">-- Select --</option>
+          <option>Easy</option>
+          <option>Moderate</option>
+          <option>Difficult</option>
+        </select>
+
+        <label class="form-label fw-bold">Flap Type</label>
+        <select class="form-select mb-3" name="flap_type" id="flap_type">
+          <option value="">-- Select Flap --</option>
+          <option>Envelope Flap</option>
+          <option>Triangular Flap</option>
+          <option>Distal-relieving Flap</option>
+          <option>Modified Triangular</option>
+          <option>Other</option>
+        </select>
+
+        <div class="form-check mb-2">
+          <input class="form-check-input" type="checkbox" name="bone_removal" id="bone_removal">
+          <label class="form-check-label">Bone removal performed</label>
+        </div>
+
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" name="tooth_sectioning" id="tooth_sectioning">
+          <label class="form-check-label">Tooth sectioning done</label>
+        </div>
+
+        <div class="mb-3">
+          <input type="text" class="form-control" name="sectioning_details" id="sectioning_details"
+                 placeholder="Sectioning details (if any)">
+        </div>
+
+        <label class="form-label fw-bold">Suture Type</label>
+        <select class="form-select mb-3" name="suture_type" id="suture_type">
+          <option value="">-- Select Suture --</option>
+          <option>Silk 3-0</option>
+          <option>Silk 4-0</option>
+          <option>Vicryl 3-0</option>
+          <option>Vicryl 4-0</option>
+        </select>
+
+      </div><!-- end surgical options -->
+    </div><!-- end extraction section -->
+
+    <!-- RCT SECTION -->
+    <div id="rct_section" class="border rounded p-3 mb-3" style="display:none;">
+      <h6 class="text-primary mb-3">🦷 Root Canal Details</h6>
+
+      <div class="row mb-3 align-items-end">
+        <div class="col-md-6">
+          <label class="form-label">Select Canal</label>
+          <select class="form-select" id="canal_selector">
+            <option value="">-- Select Canal --</option>
+            <option>MB</option><option>MB1</option><option>MB2</option>
+            <option>DB</option><option>DL</option><option>P</option>
+            <option>M</option><option>B</option><option>C</option>
+            <option>ML</option><option>Li</option><option>L</option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <button type="button" id="add_canal_btn" class="btn btn-outline-primary">+ Add Canal</button>
+          <button type="button" id="clear_canals_btn" class="btn btn-outline-secondary ms-2">Clear</button>
+          <button type="button" id="autofill_canals_btn" class="btn btn-outline-success ms-2">Auto-fill</button>
+        </div>
+      </div>
+
+      <div id="canal_list"></div>
+
+      <label class="form-label mt-3">Obturation Material</label>
+      <input type="text" class="form-control" name="obturation_material">
+    </div>
+
+    <!-- NOTES -->
+    <div class="mb-3">
+      <label class="form-label">Treatment Notes <span class="text-danger">*</span></label>
+      <textarea class="form-control" name="treatment" id="notes_field" rows="3" required></textarea>
+    </div>
+
+    <!-- POST OP -->
+    <div id="postop_section" class="border rounded p-3 mb-3" style="display:none;">
+      <h6 class="text-primary mb-2">📝 Post-op Instructions</h6>
+      <div id="postop_en" class="form-text mb-2"></div>
+    </div>
+
+    <!-- PAYMENT -->
+    <div class="row mt-4">
+      <div class="col-md-4">
+        <label class="form-label">Treatment Fee</label>
+        <input type="number" step="0.01" class="form-control" name="treatment_fee">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Amount Received</label>
+        <input type="number" step="0.01" class="form-control" name="amount_received">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Next Appointment</label>
+        <input type="date" class="form-control" name="next_appointment" id="t_next_appointment">
+      </div>
+    </div>
+
+    <!-- FILE -->
+    <div class="mb-3 mt-3">
+      <label class="form-label">Attachment</label>
+      <input type="file" class="form-control" name="attachment" accept=".png,.jpg,.jpeg,.pdf">
+    </div>
+
+    <!-- RECORDED BY -->
+    <div class="mb-3">
+      <label class="form-label fw-bold">Recorded By</label>
+      <input type="text" class="form-control" name="doctor" value="{{ session.get('username') }}" readonly>
+    </div>
+
+    <button type="submit" class="btn btn-success w-100">💾 Save Treatment</button>
+  </form>
+</div>
+
+<!-- ===================== SCRIPTS ===================== -->
+<script>
+// ---------- CASE ID LOGIC ----------
+const selectCase = document.getElementById("case_id_select");
+const manualCase = document.getElementById("case_id_manual");
+const finalCase  = document.getElementById("final_case_id");
+
+function updateFinalCaseID() {
+  if (manualCase.value.trim() !== "") {
+    finalCase.value = manualCase.value.trim();
+  } else if (selectCase.value.trim() !== "") {
+    finalCase.value = selectCase.value.trim();
+  } else {
+    finalCase.value = "";
+  }
+}
+if (selectCase)  selectCase.addEventListener("change", updateFinalCaseID);
+if (manualCase)  manualCase.addEventListener("input", updateFinalCaseID);
+
+// ---------- CORE DOM REFERENCES ----------
+const categoryField    = document.getElementById("treatment_category");
+const typeField        = document.getElementById("treatment_type");
+
+const extractionSection= document.getElementById("extraction_section");
+const extractionType   = document.getElementById("extraction_type");
+const surgicalOptions  = document.getElementById("surgical_options");
+
+const singleSection    = document.getElementById("single_tooth_section");
+const multiSection     = document.getElementById("multi_tooth_section");
+const rctSection       = document.getElementById("rct_section");
+
+const canalSelector    = document.getElementById("canal_selector");
+const canalList        = document.getElementById("canal_list");
+
+const quadrantSel      = document.getElementById("quadrant");
+const toothNumSel      = document.getElementById("tooth_num");
+const pediatricToggle  = document.getElementById("pediatric_toggle");
+
+const toothSuggestions = document.getElementById("tooth_suggestions");
+const toothSugBtns     = document.getElementById("tooth_sug_buttons");
+
+const postopSection    = document.getElementById("postop_section");
+const postopEn         = document.getElementById("postop_en");
+const notesField       = document.getElementById("notes_field");
+
+// ---------- CATEGORY → TREATMENT MAP ----------
+const treatmentMap = {
+  "Root Canal Therapy (RCT)": [
+    "RCT – Complete",
+    "RCT – Access + Cleaning/Shaping",
+    "RCT – Cleaning/Shaping + Obturation",
+    "RCT – Obturation",
+    "RCT – Post-Obturation Core",
+    "Re-RCT – Access + Removal of Old Filling",
+    "Re-RCT – Cleaning/Shaping",
+    "Re-RCT – Obturation",
+    "Re-RCT – Post-Obturation Core",
+    "Re-RCT – Dressing Only",
+    "Pulpotomy",
+    "Pulpectomy",
+    "Access Opening Only",
+    "Extirpation + Dressing"
+  ],
+  "Fillings": [
+    "Composite – Single Surface",
+    "Composite – Multiple Surfaces",
+    "GIC Filling",
+    "Temporary Filling",
+    "Composite Veneer",
+    "Diastema Closure",
+    "Class V Cervical Filling"
+  ],
+  "Scaling & Periodontal": [
+    "Scaling",
+    "Scaling + Polishing",
+    "Deep Scaling / Curettage",
+    "Root Planing (Quadrant)",
+    "Gingivectomy",
+    "Gingivoplasty",
+    "Perio Flap Surgery",
+    "Local Drug Delivery"
+  ],
+  "Crown & Bridge": [
+    "Crown Prep – Zirconia",
+    "Crown Prep – PFM",
+    "Crown Cementation",
+    "Bridge Prep",
+    "Bridge Cementation",
+    "Post & Core"
+  ],
+  "Dentures": [
+    "Complete Denture – Upper",
+    "Complete Denture – Lower",
+    "Partial Denture – Upper",
+    "Partial Denture – Lower",
+    "Denture Repair",
+    "Soft Reline",
+    "Hard Reline"
+  ],
+  "Implants": [
+    "Implant Placement",
+    "Implant Exposure",
+    "Healing Abutment Placement",
+    "Implant Crown Final"
+  ],
+  "Extraction / Minor Oral Surgery": [
+    "Tooth Extraction",
+    "Incision & Drainage",
+    "Alveoloplasty",
+    "Frenectomy",
+    "Abscess Drainage",
+    "Biopsy – Incisional",
+    "Biopsy – Excisional",
+    "Dry Socket Treatment"
+  ],
+  "Pediatric Dentistry": [
+    "Fluoride Application",
+    "Fissure Sealant",
+    "Pedo Pulpectomy",
+    "Pedo Pulpotomy",
+    "SSC Crown",
+    "Space Maintainer"
+  ],
+  "Orthodontics": [
+    "Ortho Consultation",
+    "Ortho Records",
+    "Cephalometric Analysis",
+    "Orthodontic Treatment Planning",
+    "Bracket Bonding – Full Arch",
+    "Bracket Bonding – Single Tooth",
+    "Bracket Rebonding",
+    "Band Placement",
+    "Debonding",
+    "Wire Change",
+    "Power Chain Placement",
+    "Power Chain Replacement",
+    "Coil Spring Placement",
+    "Coil Spring Replacement",
+    "Bite Turbo Placement",
+    "Bite Turbo Removal",
+    "TAD Placement",
+    "TAD Removal",
+    "Nance Appliance Adjustment",
+    "TPA Adjustment",
+    "Expander Activation",
+    "Expander Removal",
+    "Inter-arch Elastics Review",
+    "Aligner Delivery",
+    "Attachment Bonding",
+    "Attachment Removal",
+    "Aligner Progress Review",
+    "Refinement Scan",
+    "IPR",
+    "IPR Review",
+    "Twin Block Delivery",
+    "Twin Block Adjustment",
+    "Myobrace Delivery",
+    "Myobrace Review",
+    "Herbst Adjustment",
+    "Essix Retainer Delivery",
+    "Hawley Retainer Delivery",
+    "Fixed Retainer Delivery",
+    "Retainer Repair",
+    "Retainer Adjustment",
+    "Poking Wire Fix",
+    "Loose Bracket Fix",
+    "Loose Band Fix",
+    "Broken Wire Replacement"
+  ],
+  "Cosmetic": [
+    "Whitening – Office",
+    "Whitening – Home",
+    "Composite Shaping"
+  ],
+  "General": [
+    "OPG Referral",
+    "Oral Hygiene Instructions",
+    "TMJ Treatment",
+    "Suture Removal",
+    "Emergency Pain Management"
+  ],
+  "Other": [
+    "Other (Specify in Notes)"
+  ]
+};
+
+// Sets for logic
+const RCT_TREATMENTS = [
+  "RCT – Complete",
+  "RCT – Access + Cleaning/Shaping",
+  "RCT – Cleaning/Shaping + Obturation",
+  "RCT – Obturation",
+  "RCT – Post-Obturation Core",
+  "Re-RCT – Access + Removal of Old Filling",
+  "Re-RCT – Cleaning/Shaping",
+  "Re-RCT – Obturation",
+  "Re-RCT – Post-Obturation Core",
+  "Re-RCT – Dressing Only",
+  "Pulpotomy",
+  "Pulpectomy",
+  "Access Opening Only",
+  "Extirpation + Dressing",
+  "Pedo Pulpectomy",
+  "Pedo Pulpotomy"
+];
+
+const EXTRACTION_TREATMENTS = ["Tooth Extraction"];
+
+// single tooth logic (needs UR3, etc.)
+const SINGLE_TOOTH_TREATMENTS = [
+  ...RCT_TREATMENTS,
+  "Composite – Single Surface",
+  "Composite – Multiple Surfaces",
+  "GIC Filling",
+  "Temporary Filling",
+  "Composite Veneer",
+  "Diastema Closure",
+  "Class V Cervical Filling",
+  "Crown Prep – Zirconia",
+  "Crown Prep – PFM",
+  "Crown Cementation",
+  "Post & Core",
+  "Implant Exposure",
+  "Healing Abutment Placement",
+  "Implant Crown Final",
+  "Fluoride Application",
+  "Fissure Sealant",
+  "SSC Crown",
+  "Space Maintainer",
+  "Pedo Pulpectomy",
+  "Pedo Pulpotomy",
+  "Incision & Drainage",
+  "Frenectomy",
+  "Abscess Drainage",
+  "Dry Socket Treatment",
+  "Biopsy – Incisional",
+  "Biopsy – Excisional",
+  "Tooth Extraction"
+];
+
+// multi-site / span logic (bridge, implant site, quadrant work)
+const MULTI_SITE_TREATMENTS = [
+  "Bridge Prep",
+  "Bridge Cementation",
+  "Implant Placement",
+  "Root Planing (Quadrant)",
+  "Perio Flap Surgery",
+  "Alveoloplasty"
+];
+
+// ---------- CATEGORY CHANGE ----------
+if (categoryField) {
+  categoryField.addEventListener("change", () => {
+    const cat = categoryField.value;
+    typeField.innerHTML = '<option value="">-- Select Treatment --</option>';
+
+    if (treatmentMap[cat]) {
+      treatmentMap[cat].forEach(t => {
+        const opt = document.createElement("option");
+        opt.value = t;
+        opt.textContent = t;
+        typeField.appendChild(opt);
+      });
+    }
+
+    handleTreatmentChange(); // reset visibility
+  });
+}
+
+// ---------- TREATMENT CHANGE ----------
+if (typeField) {
+  typeField.addEventListener("change", handleTreatmentChange);
+}
+
+function handleTreatmentChange() {
+  const val = typeField.value;
+
+  // reset
+  singleSection.style.display     = "none";
+  multiSection.style.display      = "none";
+  rctSection.style.display        = "none";
+  extractionSection.style.display = "none";
+  toothSuggestions.style.display  = "none";
+  toothSugBtns.innerHTML          = "";
+  postopSection.style.display     = "none";
+  postopEn.innerHTML              = "";
+
+  if (!val) return;
+
+  const isRCT        = RCT_TREATMENTS.includes(val);
+  const isExtraction = EXTRACTION_TREATMENTS.includes(val);
+  const isSingle     = SINGLE_TOOTH_TREATMENTS.includes(val);
+  const isMulti      = MULTI_SITE_TREATMENTS.includes(val);
+
+  if (isSingle || isExtraction || isRCT) {
+    singleSection.style.display = "block";
+    toothSuggestions.style.display = "block";
+    buildSuggestions(val);
+  }
+  if (isMulti) {
+    multiSection.style.display = "block";
+  }
+  if (isRCT) {
+    rctSection.style.display = "block";
+  }
+  if (isExtraction) {
+    extractionSection.style.display = "block";
+  }
+
+  autoSimpleNotes();
+
+  const toothHidden = document.getElementById("tooth_number").value;
+  if (isExtraction && toothHidden && extractionType && extractionType.value) {
+    generateExtractionNotes();
+    generatePostOpInstructions();
+  }
+}
+
+// ---------- SIMPLE AUTO-NOTES ----------
+function autoSimpleNotes() {
+  const val = typeField ? typeField.value : "";
+  if (!val || !notesField) return;
+  if (notesField.value.trim() !== "") return;
+
+  const toothCode = document.getElementById("tooth_number").value;
+  const niceTooth = toothCode ? readableTooth(toothCode) : "";
+
+  let txt = "";
+
+  // Scaling / Perio
+  if (["Scaling", "Scaling + Polishing"].includes(val)) {
+    txt = "Full-mouth scaling and debridement were carried out using ultrasonic scaler." +
+          " Plaque and calculus were removed as far as possible and oral hygiene instructions were reinforced.";
+  } else if (val === "Deep Scaling / Curettage" || val === "Root Planing (Quadrant)") {
+    txt = "Deep scaling and root planing were performed in the indicated area with local anesthesia as required." +
+          " Periodontal pockets were debrided and the need for maintenance/recall was explained.";
+  } else if (["Gingivectomy", "Gingivoplasty", "Perio Flap Surgery"].includes(val)) {
+    txt = val + " was carried out under local anesthesia with adequate hemostasis. Post-operative instructions and review visit were advised.";
+  } else if (val === "Local Drug Delivery") {
+    txt = "Local chemotherapeutic agent was placed in selected periodontal pockets following debridement. Patient was advised not to disturb the area and to maintain good oral hygiene.";
+
+  // Fillings
+  } else if (treatmentMap["Fillings"].includes(val)) {
+    txt = val + " was done for " + (niceTooth || "the involved tooth") +
+          ". Caries removal and cavity preparation were completed under isolation and occlusion/contacts were checked and adjusted.";
+
+  // RCT family
+  } else if (RCT_TREATMENTS.includes(val)) {
+    txt = val + " was performed for " + (niceTooth || "the involved tooth") +
+          ". Working length and canal preparation were completed as per standard protocol and canals were managed accordingly.";
+
+  // Crown & bridge
+  } else if (["Crown Prep – Zirconia", "Crown Prep – PFM"].includes(val)) {
+    txt = val + " carried out for " + (niceTooth || "the abutment tooth") +
+          ". Tooth was prepared with adequate reduction, margins refined and impression/scan taken. A provisional crown was placed and instructions were given.";
+  } else if (["Crown Cementation"].includes(val)) {
+    txt = "Final crown was checked for fit, contacts and occlusion and cemented with appropriate luting cement. Patient was advised to avoid hard chewing on the tooth for the first few hours.";
+  } else if (["Bridge Prep"].includes(val)) {
+    txt = "Abutment teeth were prepared for fixed partial denture over the described span. Provisional restoration was provided and impression/scan was taken for definitive prosthesis.";
+  } else if (["Bridge Cementation"].includes(val)) {
+    txt = "Bridge try-in and cementation were performed, ensuring marginal fit, occlusion and aesthetics. Post-cementation instructions and recall visit were explained.";
+
+  // Dentures
+  } else if (treatmentMap["Dentures"].includes(val)) {
+    txt = val + " stage was completed. Borders, retention and occlusion were evaluated and necessary adjustments were made. Instructions regarding use, cleaning and follow-up were given.";
+
+  // Implants
+  } else if (val === "Implant Placement") {
+    txt = "Implant placement was carried out under aseptic conditions following the manufacturer's drilling protocol. Primary stability was achieved and post-operative instructions were given.";
+  } else if (["Implant Exposure", "Healing Abutment Placement"].includes(val)) {
+    txt = val + " was done uneventfully and soft tissues were adapted around the healing component.";
+  } else if (val === "Implant Crown Final") {
+    txt = "Final implant crown was tried in, occlusion and contact points were adjusted and prosthesis was finally torqued/cemented according to protocol.";
+
+  // Ortho
+  } else if (treatmentMap["Orthodontics"].includes(val)) {
+    txt = "Orthodontic visit (" + val + "): appliance/archwire was checked and necessary adjustments were made. Oral hygiene and elastic wear (if applicable) were reinforced.";
+
+  // Pediatric
+  } else if (["Fluoride Application", "Fissure Sealant"].includes(val)) {
+    txt = val + " was done for caries prevention with appropriate isolation. Child and parent were advised regarding diet and brushing.";
+  } else if (["SSC Crown"].includes(val)) {
+    txt = "Stainless steel crown was adapted and cemented on " + (niceTooth || "the involved primary tooth") + " with good marginal fit and occlusion.";
+
+  // Cosmetic
+  } else if (val === "Whitening – Office") {
+    txt = "In-office tooth whitening was performed with soft tissue protection and controlled exposure time. Shade improvement was noted and sensitivity precautions were explained.";
+  } else if (val === "Whitening – Home") {
+    txt = "Home bleaching kit and trays were delivered with written and verbal instructions regarding usage, duration and management of possible sensitivity.";
+  } else if (val === "Composite Shaping") {
+    txt = "Composite contouring and reshaping were done to improve aesthetics while preserving tooth structure.";
+
+  // General
+  } else if (val === "OPG Referral") {
+    txt = "Patient was referred for panoramic radiograph (OPG) for further diagnostic evaluation.";
+  } else if (val === "Oral Hygiene Instructions") {
+    txt = "Oral hygiene instructions were given, including brushing technique, interdental cleaning and dietary advice.";
+  } else if (val === "TMJ Treatment") {
+    txt = "TMJ examination was performed and conservative management/physiotherapy instructions were explained.";
+  } else if (val === "Suture Removal") {
+    txt = "Sutures were removed, the surgical site was inspected and healing was found to be satisfactory.";
+  } else if (val === "Emergency Pain Management") {
+    txt = "Emergency visit for acute pain. Symptomatic relief provided and definitive treatment plan discussed.";
+
+  // fallback
+  } else if (categoryField && categoryField.value && val) {
+    txt = val + " performed as planned. Procedure was completed uneventfully and post-operative / follow-up instructions were explained.";
+  }
+
+  if (txt) {
+    notesField.value = txt;
+  }
+}
+
+// ---------- TOOTH SUGGESTION BUTTONS ----------
+function buildSuggestions(typeName) {
+  let list = [];
+
+  if (RCT_TREATMENTS.includes(typeName)) {
+    list = ["UR6", "UL6", "LL6", "LR6", "UR2", "UL2"];
+  } else if (EXTRACTION_TREATMENTS.includes(typeName)) {
+    list = ["UR8", "UL8", "LL8", "LR8", "LL6", "LR6"];
+  } else if (SINGLE_TOOTH_TREATMENTS.includes(typeName)) {
+    list = ["UR4", "UL4", "LL4", "LR4"];
+  }
+
+  toothSugBtns.innerHTML = "";
+  list.forEach(t => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "btn btn-outline-secondary btn-sm";
+    btn.textContent = t;
+    btn.onclick = () => applyToothSelection(t);
+    toothSugBtns.appendChild(btn);
+  });
+}
+
+function applyToothSelection(code) {
+  const q = code.slice(0, 2);
+  const n = code.slice(2);
+
+  quadrantSel.value = q;
+  toothNumSel.value = n;
+  document.getElementById("tooth_number").value = q + n;
+
+  const currentVal = typeField.value;
+  const isRCT = RCT_TREATMENTS.includes(currentVal);
+  const isExtraction = EXTRACTION_TREATMENTS.includes(currentVal);
+
+  if (isRCT) {
+    autoAddCanals(n, q);
+  }
+  if (isExtraction) {
+    generateExtractionNotes();
+    if (extractionType && extractionType.value) {
+      generatePostOpInstructions();
+    }
+  }
+}
+
+// ---------- MANUAL TOOTH CHANGE ----------
+if (quadrantSel) {
+  quadrantSel.addEventListener("change", updateHiddenTooth);
+}
+if (toothNumSel) {
+  toothNumSel.addEventListener("change", updateHiddenTooth);
+}
+
+function updateHiddenTooth() {
+  const q = quadrantSel.value;
+  const n = toothNumSel.value;
+
+  if (q && n) {
+    document.getElementById("tooth_number").value = q + n;
+
+    const currentVal = typeField.value;
+    const isRCT = RCT_TREATMENTS.includes(currentVal);
+    const isExtraction = EXTRACTION_TREATMENTS.includes(currentVal);
+
+    if (isRCT) autoAddCanals(n, q);
+
+    if (isExtraction) {
+      generateExtractionNotes();
+      if (extractionType && extractionType.value) {
+        generatePostOpInstructions();
+      }
+    }
+  }
+}
+
+// ---------- PEDIATRIC TOGGLE ----------
+if (pediatricToggle) {
+  pediatricToggle.addEventListener("change", () => {
+    let html = "<option value=''>-- Select Tooth --</option>";
+    if (pediatricToggle.checked) {
+      ["A", "B", "C", "D", "E"].forEach(t => html += `<option value="${t}">${t}</option>`);
+    } else {
+      for (let i = 1; i <= 8; i++) html += `<option value="${i}">${i}</option>`;
+    }
+    toothNumSel.innerHTML = html;
+    quadrantSel.value = "";
+    document.getElementById("tooth_number").value = "";
+    canalList.innerHTML = "";
+  });
+}
+
+// ---------- EXTRACTION MODULE ----------
+if (extractionType) {
+  extractionType.addEventListener("change", () => {
+    surgicalOptions.style.display =
+      extractionType.value === "Surgical Extraction" ? "block" : "none";
+
+    generateExtractionNotes();
+
+    const currentVal = typeField.value;
+    if (EXTRACTION_TREATMENTS.includes(currentVal) && extractionType.value) {
+      generatePostOpInstructions();
+    }
+  });
+}
+
+// ---------- CANAL FUNCTIONS ----------
+if (document.getElementById("add_canal_btn")) {
+  document.getElementById("add_canal_btn").addEventListener("click", () => {
+    const c = canalSelector.value;
+    if (!c) return alert("Select canal first.");
+    addCanal(c);
+  });
+}
+
+if (document.getElementById("clear_canals_btn")) {
+  document.getElementById("clear_canals_btn").addEventListener("click", () => {
+    canalList.innerHTML = "";
+  });
+}
+
+if (document.getElementById("autofill_canals_btn")) {
+  document.getElementById("autofill_canals_btn").addEventListener("click", () => {
+    const q = quadrantSel.value;
+    const n = toothNumSel.value;
+    if (!q || !n) return alert("Select tooth first.");
+    autoAddCanals(n, q);
+  });
+}
+
+function addCanal(name) {
+  if (document.getElementById("row_" + name)) return;
+
+  const row = document.createElement("div");
+  row.className = "row mb-2 align-items-center";
+  row.id = "row_" + name;
+
+  row.innerHTML = `
+    <div class="col-md-2 fw-bold">${name}</div>
+    <div class="col-md-4"><input name="wl_${name}" class="form-control form-control-sm" placeholder="WL (mm)"></div>
+    <div class="col-md-4"><input name="maf_${name}" class="form-control form-control-sm" placeholder="MAF #"></div>
+    <div class="col-md-2">
+      <button type="button" class="btn btn-sm btn-outline-danger remove-canal">✖</button>
+    </div>
+  `;
+  canalList.appendChild(row);
+}
+
+if (canalList) {
+  canalList.addEventListener("click", (e) => {
+    if (e.target.classList.contains("remove-canal")) {
+      e.target.closest(".row").remove();
+    }
+  });
+}
+
+// AUTO CANAL LOGIC
+function autoAddCanals(tooth, quadrant) {
+  canalList.innerHTML = "";
+
+  if (isNaN(parseInt(tooth))) {
+    addCanal("M");
+    return;
+  }
+
+  const n  = parseInt(tooth);
+  const isU= quadrant.startsWith("U");
+  const isL= quadrant.startsWith("L");
+
+  if (isU) {
+    if (n <= 3) { addCanal("C"); return; }
+    if (n === 4) { addCanal("B"); addCanal("P"); return; }
+    if (n === 5) { addCanal("C"); return; }
+    if ([6,7,8].includes(n)) { addCanal("MB1"); addCanal("MB2"); addCanal("DB"); addCanal("P"); return; }
+  }
+  if (isL) {
+    if ([1,2].includes(n)) { addCanal("L"); addCanal("Li"); return; }
+    if (n === 3) { addCanal("C"); return; }
+    if ([4,5].includes(n)) { addCanal("C"); return; }
+    if (n === 6) { addCanal("MB"); addCanal("ML"); addCanal("DB"); addCanal("DL"); return; }
+    if ([7,8].includes(n)) { addCanal("MB"); addCanal("ML"); addCanal("D"); return; }
+  }
+  addCanal("M");
+}
+
+// ---------- READABLE TOOTH NAME ----------
+function readableTooth(toothCode) {
+  if (!toothCode) return "";
+
+  const quadrant = toothCode.substring(0,2);
+  const num      = toothCode.substring(2);
+
+  const quadrantNames = {
+    "UR": "Upper Right",
+    "UL": "Upper Left",
+    "LL": "Lower Left",
+    "LR": "Lower Right"
+  };
+
+  const adultNames = {
+    1: "Central Incisor",
+    2: "Lateral Incisor",
+    3: "Canine",
+    4: "First Premolar",
+    5: "Second Premolar",
+    6: "First Molar",
+    7: "Second Molar",
+    8: "Third Molar"
+  };
+
+  const pedoNames = {
+    "A": "Second Molar",
+    "B": "First Molar",
+    "C": "Canine",
+    "D": "Lateral Incisor",
+    "E": "Central Incisor"
+  };
+
+  let toothName = "";
+  if (isNaN(parseInt(num))) {
+    toothName = pedoNames[num] || "";
+  } else {
+    toothName = adultNames[num] || "";
+  }
+  return `${quadrantNames[quadrant] || quadrant} ${toothName} (${toothCode})`;
+}
+
+// ---------- EXTRACTION NOTES ----------
+function generateExtractionNotes() {
+  const tooth            = document.getElementById("tooth_number").value;
+  const extractionTypeVal= extractionType ? extractionType.value : "";
+  const imp              = document.getElementById("impaction_type") ? document.getElementById("impaction_type").value : "";
+  const diff             = document.getElementById("extraction_difficulty") ? document.getElementById("extraction_difficulty").value : "";
+  const flap             = document.getElementById("flap_type") ? document.getElementById("flap_type").value : "";
+  const bone             = document.getElementById("bone_removal") ? document.getElementById("bone_removal").checked : false;
+  const suture           = document.getElementById("suture_type") ? document.getElementById("suture_type").value : "";
+  const laType           = document.getElementById("la_type") ? document.getElementById("la_type").value : "";
+  const laVol            = document.getElementById("la_volume") ? document.getElementById("la_volume").value.trim() : "";
+  const sectioning       = document.getElementById("tooth_sectioning") ? document.getElementById("tooth_sectioning").checked : false;
+  const sectionDetails   = document.getElementById("sectioning_details") ? document.getElementById("sectioning_details").value.trim() : "";
+
+  if (!tooth || !extractionTypeVal || !notesField) return;
+
+  const readable = readableTooth(tooth);
+
+  let laSentence = "";
+  if (laType && laVol) {
+    laSentence = `After administration of ${laVol} ml of ${laType}, `;
+  } else if (laType) {
+    laSentence = `After administration of local anesthesia (${laType}), `;
+  } else if (laVol) {
+    laSentence = `After administration of ${laVol} ml of local anesthetic, `;
+  } else {
+    laSentence = `Under adequate local anesthesia, `;
+  }
+
+  let notes = "";
+
+  if (extractionTypeVal === "Simple (Non-surgical)") {
+    notes = `${laSentence}simple extraction was performed for ${readable}. Tooth was removed atraumatically, socket was curetted and irrigated with normal saline, and hemostasis was achieved. Post-operative instructions were explained and the patient tolerated the procedure well.`;
+  }
+
+  if (extractionTypeVal === "Surgical Extraction") {
+    notes = `${laSentence}surgical extraction was performed for ${readable}. `;
+
+    if (imp)  notes += `${imp} impaction was noted. `;
+    if (diff) notes += `Overall difficulty was assessed as ${diff}. `;
+
+    if (flap) {
+      let flapClean = flap.replace(/flap/i, "").trim();
+      notes += `A ${flapClean} flap was raised to gain adequate access. `;
+    }
+
+    if (bone) notes += `Controlled bone removal was performed as required to facilitate tooth removal. `;
+
+    if (sectioning) {
+      let sec = sectionDetails || "sectioning performed";
+      sec = sec.replace(/seperat/gi, "separat");
+      notes += `Tooth sectioning was carried out (${sec}). `;
+    }
+
+    notes += `The tooth was delivered and the surgical site was irrigated thoroughly with normal saline. Hemostasis was achieved`;
+    if (suture) {
+      notes += ` and sutures were placed using ${suture}. `;
+    } else {
+      notes += `. `;
+    }
+    notes += `The patient tolerated the procedure well and post-operative instructions were given.`;
+  }
+
+  notesField.value = notes;
+}
+
+// ---------- POST-OP INSTRUCTIONS ----------
+function generatePostOpInstructions() {
+  const bone = document.getElementById("bone_removal") ? document.getElementById("bone_removal").checked : false;
+  let en = [];
+
+  en.push("1. Bite on gauze for 30–45 minutes to establish hemostasis. Replace gauze if heavy bleeding.");
+  en.push("2. Avoid rinsing, spitting or hot drinks for 24 hours.");
+  en.push("3. Keep head elevated and rest for the remainder of the day.");
+  en.push("4. Soft cold diet for 24 hours; avoid chewing at the extraction site.");
+  en.push("5. Take prescribed analgesics and antibiotics (if given) as directed.");
+  if (bone) en.push("6. As bone removal was performed, avoid strenuous activity for 3–5 days and follow suture care instructions.");
+  en.push("7. If swelling or fever develops, contact the clinic immediately.");
+  en.push("8. Sutures (if placed) will be removed/reviewed at 5–7 days.");
+
+  postopEn.innerHTML = en.join("<br>");
+  postopSection.style.display = "block";
+}
+
+// Auto-trigger post-op when extraction-related fields change
+[
+  "extraction_type", "impaction_type", "extraction_difficulty",
+  "flap_type", "suture_type", "bone_removal",
+  "la_type", "la_volume", "tooth_sectioning", "sectioning_details"
+].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener("change", () => {
+    generateExtractionNotes();
+    const currentVal = typeField.value;
+    if (EXTRACTION_TREATMENTS.includes(currentVal) && extractionType && extractionType.value) {
+      generatePostOpInstructions();
+    }
+  });
+});
+
+// ---------- BASIC SUBMIT CHECK ----------
+const treatmentForm = document.getElementById("treatmentForm");
+if (treatmentForm) {
+  treatmentForm.addEventListener("submit", (e) => {
+    if (!document.getElementById("dentist_id").value) {
+      alert("Please select a dentist.");
+      e.preventDefault();
+      return;
+    }
+    if (!categoryField.value) {
+      alert("Please select a treatment category.");
+      e.preventDefault();
+      return;
+    }
+    if (!typeField.value) {
+      alert("Please select a treatment type.");
+      e.preventDefault();
+      return;
+    }
+  });
+}
+
+// Initial state
+postopSection.style.display = "none";
+</script>
+
+{% endblock %}

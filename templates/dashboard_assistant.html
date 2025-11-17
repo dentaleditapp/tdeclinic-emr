@@ -1,0 +1,60 @@
+{% extends "layout.html" %}
+{% block content %}
+<nav class="navbar navbar-dark bg-success mb-3">
+  <div class="container-fluid">
+    <span class="navbar-brand mb-0 h1">
+      {% if session['role'] == 'doctor' %}
+        Doctor Dashboard
+      {% else %}
+        Assistant Dashboard
+      {% endif %}
+    </span>
+    <a href="{{ url_for('logout') }}" class="btn btn-light">Logout</a>
+  </div>
+</nav>
+
+<div class="container">
+  <h4 class="mb-3">Welcome, {{ session['username'] | capitalize }}!</h4>
+
+  <form method="get" action="{{ url_for('dashboard_main') }}" class="mb-3">
+    <div class="input-group">
+      <input type="text" name="q" value="{{ q }}" placeholder="Search patients by name..." class="form-control">
+      <button class="btn btn-primary">Search</button>
+      <a href="{{ url_for('patient_registration') }}" class="btn btn-success ms-2">+ Add New Patient</a>
+    </div>
+  </form>
+
+  {% if patients %}
+  <table class="table table-hover table-bordered align-middle">
+    <thead class="table-success">
+      <tr>
+        <th>File No</th>
+        <th>Full Name</th>
+        <th>Gender</th>
+        <th>Contact</th>
+        <th>Date</th>
+        <th>Created By</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for patient in patients %}
+      <tr>
+        <td>{{ patient.file_no }}</td>
+        <td>{{ patient.full_name }}</td>
+        <td>{{ patient.gender }}</td>
+        <td>{{ patient.contact }}</td>
+        <td>{{ patient.date }}</td>
+        <td>{{ patient.created_by }}</td>
+        <td>
+          <a href="{{ url_for('view_patient', patient_id=patient.id) }}" class="btn btn-sm btn-outline-primary">View</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <div class="alert alert-info">No patients found.</div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,67 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="container mt-4" style="max-width:700px;">
+  <h4 class="mb-3">➕ Add Follow-up for {{ treatment.treatment_type }} ({{ treatment.date }})</h4>
+
+  <form method="POST" enctype="multipart/form-data" id="followupForm">
+    <!-- Date (server) -->
+    <div class="mb-3">
+      <label class="form-label">Notes</label>
+      <textarea name="notes" class="form-control" rows="4" required></textarea>
+      <div class="invalid-feedback">Please enter notes for the follow-up.</div>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Status</label>
+      <select name="status" id="fu_status" class="form-select" required>
+        <option value="Ongoing">Ongoing</option>
+        <option value="Completed">Completed</option>
+      </select>
+    </div>
+
+    <div class="mb-3" id="next_app_wrapper">
+      <label class="form-label">Next Appointment (optional)</label>
+      <input type="date" name="next_appointment" id="next_appointment" class="form-control">
+      <div class="form-text text-muted">Leave empty if not scheduling now — you can add later from treatment page.</div>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Attachment (optional)</label>
+      <input type="file" name="attachment" class="form-control" accept=".png,.jpg,.jpeg,.pdf">
+    </div>
+
+    <div class="d-flex justify-content-end">
+      <a href="{{ url_for('view_treatment', treatment_id=treatment.id) }}" class="btn btn-secondary me-2">Cancel</a>
+      <button class="btn btn-primary">Add Follow-up</button>
+    </div>
+  </form>
+</div>
+
+<script>
+  const statusField = document.getElementById('fu_status');
+  const nextWrapper = document.getElementById('next_app_wrapper');
+  const nextInput = document.getElementById('next_appointment');
+
+  function toggleNextAppointment() {
+    if (statusField.value === 'Completed') {
+      nextWrapper.style.display = 'none';
+      nextInput.value = '';
+    } else {
+      nextWrapper.style.display = 'block';
+    }
+  }
+  statusField.addEventListener('change', toggleNextAppointment);
+  toggleNextAppointment();
+
+  // Simple frontend validation to prevent past dates
+  document.getElementById('followupForm').addEventListener('submit', function(e){
+    const d = nextInput.value;
+    if (d) {
+      const chosen = new Date(d);
+      const today = new Date(); today.setHours(0,0,0,0);
+      if (chosen < today) { alert('Next appointment cannot be in the past.'); e.preventDefault(); return false; }
+    }
+    // allow submit
+  });
+</script>
+{% endblock %}

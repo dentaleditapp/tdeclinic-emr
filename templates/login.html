@@ -1,0 +1,29 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="d-flex align-items-center justify-content-center" style="height:80vh;">
+  <div class="col-md-4 col-sm-10 bg-white p-4 rounded shadow">
+    <h3 class="mb-4 text-primary text-center">🦷 The Dental Edit</h3>
+
+    <form method="POST" action="{{ url_for('login') }}">
+      <div class="mb-3">
+        <input type="text" class="form-control" name="username" placeholder="Username" required>
+      </div>
+      <div class="mb-3">
+        <input type="password" class="form-control" name="password" placeholder="Password" required>
+      </div>
+
+      <button type="submit" class="btn btn-primary w-100 mb-3">Login</button>
+    </form>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="mt-2">
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category }} text-center py-2 small">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+  </div>
+</div>
+{% endblock %}

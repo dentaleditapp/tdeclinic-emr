@@ -1,0 +1,75 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<div class="container py-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h4 class="text-primary mb-0">💊 Prescription (View Only)</h4>
+      <div class="small text-muted">
+        {{ patient.full_name }} — Visit on {{ visit.visit_date }}
+      </div>
+    </div>
+    <div>
+      <a href="{{ url_for('view_patient', patient_id=patient.id) }}#visits"
+         class="btn btn-sm btn-outline-secondary">⬅ Back</a>
+      <a href="{{ url_for('print_visit_prescription', visit_id=visit.id) }}"
+         target="_blank"
+         class="btn btn-sm btn-outline-primary">🖨 Print</a>
+    </div>
+  </div>
+
+  <div class="card shadow-sm mb-3">
+    <div class="card-header fw-bold">
+      Prescription Details
+    </div>
+    <div class="card-body">
+      {% if prescription.notes %}
+      <div class="mb-3">
+        <strong>General Notes:</strong>
+        <div class="border rounded p-2 bg-light">
+          {{ prescription.notes }}
+        </div>
+      </div>
+      {% endif %}
+
+      {% if items %}
+      <div class="table-responsive">
+        <table class="table table-bordered table-sm align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>#</th>
+              <th>Drug</th>
+              <th>Form</th>
+              <th>Strength</th>
+              <th>Qty</th>
+              <th>Frequency</th>
+              <th>Duration</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for it in items %}
+            <tr>
+              <td>{{ loop.index }}</td>
+              <td>{{ it.drug_name }}</td>
+              <td>{{ it.dosage_form }}</td>
+              <td>{{ it.strength }}</td>
+              <td>{{ it.quantity }}</td>
+              <td>{{ it.frequency }}</td>
+              <td>{{ it.duration }}</td>
+              <td>{{ it.notes }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="text-muted mb-0">No medicines recorded in this prescription.</p>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}

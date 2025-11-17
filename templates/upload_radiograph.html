@@ -1,0 +1,47 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container mt-5">
+  <div class="card shadow-sm p-4">
+    <h4 class="text-primary mb-3">📸 Upload Radiographs for {{ patient.full_name }}</h4>
+
+    <form method="POST" enctype="multipart/form-data">
+      <div class="mb-3">
+        <label class="form-label fw-bold">Select Radiographs (jpg, png, jpeg, pdf)</label>
+        <input type="file" name="radiographs" class="form-control" multiple required>
+      </div>
+
+      <div class="mt-4">
+        <button type="submit" class="btn btn-success">⬆ Upload</button>
+        <a href="{{ url_for('view_patient', patient_id=patient.id) }}" class="btn btn-secondary ms-2">← Back</a>
+      </div>
+    </form>
+  </div>
+
+  <div class="mt-4">
+    <h5 class="fw-bold text-muted">Previously Uploaded Radiographs</h5>
+    {% set radiographs = patient.radiographs if patient.radiographs else [] %}
+    {% if radiographs %}
+      <div class="row mt-3">
+        {% for r in radiographs %}
+        <div class="col-md-3 text-center mb-3">
+          <a href="{{ url_for('static', filename='../uploads/' + r.filename) }}" target="_blank">
+            <img src="{{ url_for('static', filename='../uploads/' + r.filename) }}" 
+                 alt="Radiograph" class="img-thumbnail shadow-sm" style="height:150px;">
+          </a>
+          <p class="small text-muted">{{ r.uploaded_at }}</p>
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="text-muted">No radiographs uploaded yet.</p>
+    {% endif %}
+  </div>
+</div>
+
+<style>
+  .img-thumbnail:hover {
+    transform: scale(1.05);
+    transition: 0.2s ease;
+  }
+</style>
+{% endblock %}

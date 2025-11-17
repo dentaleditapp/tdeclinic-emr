@@ -1,0 +1,74 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="text-primary mb-0">🦷 Register New Dentist</h4>
+    <a href="{{ url_for('dashboard_main') }}" class="btn btn-secondary btn-sm">⬅ Back to Dashboard</a>
+  </div>
+
+  <!-- Dentist Registration Form -->
+  <form method="POST" class="border rounded p-3 bg-white shadow-sm mb-4">
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        <label class="form-label fw-semibold">Full Name</label>
+        <input type="text" name="name" class="form-control" placeholder="Enter dentist name" required>
+      </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label fw-semibold">Specialization</label>
+        <input type="text" name="specialization" class="form-control" placeholder="e.g., Endodontist, Orthodontist">
+      </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label fw-semibold">Contact Number</label>
+        <input type="text" name="contact" class="form-control" placeholder="e.g., 0300-1234567" required>
+      </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label fw-semibold">Email Address</label>
+        <input type="email" name="email" class="form-control" placeholder="e.g., example@clinic.com">
+      </div>
+    </div>
+
+    <button type="submit" class="btn btn-success w-100">💾 Save Dentist</button>
+  </form>
+
+  <!-- Registered Dentists -->
+  <h5 class="text-secondary mt-4">👩‍⚕️ Registered Dentists</h5>
+  {% if dentists %}
+  <div class="table-responsive mt-3">
+    <table class="table table-bordered table-striped align-middle">
+      <thead class="table-primary">
+        <tr>
+          <th>#</th>
+          <th>Name</th>
+          <th>Specialization</th>
+          <th>Contact</th>
+          <th>Email</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in dentists %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>{{ d.name }}</td>
+          <td>{{ d.specialization or '-' }}</td>
+          <td>{{ d.contact }}</td>
+          <td>{{ d.email or '-' }}</td>
+          <td>
+            <a href="{{ url_for('delete_dentist', dentist_id=d.id) }}"
+               class="btn btn-sm btn-outline-danger"
+               onclick="return confirm('Are you sure you want to delete {{ d.name }}?')">🗑 Delete</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="alert alert-info mt-3">No dentists registered yet.</div>
+  {% endif %}
+</div>
+
+<style>
+  table th, table td { vertical-align: middle !important; }
+</style>
+{% endblock %}

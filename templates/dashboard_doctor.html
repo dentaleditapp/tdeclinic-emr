@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Doctor Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+<nav class="navbar navbar-dark bg-primary">
+  <div class="container-fluid">
+    <span class="navbar-brand mb-0 h1">Doctor Dashboard</span>
+    <a href="{{ url_for('logout') }}" class="btn btn-light">Logout</a>
+  </div>
+</nav>
+
+<div class="container mt-4">
+    <h4>Welcome, Doctor!</h4>
+    <p>You can manage patient records, treatments, and payments here.</p>
+</div>
+</body>
+</html>

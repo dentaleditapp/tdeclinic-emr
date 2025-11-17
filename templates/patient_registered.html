@@ -1,0 +1,30 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="d-flex justify-content-center align-items-center" style="min-height:80vh;">
+  <div class="card shadow-sm p-4 text-center" style="max-width:600px; width:100%;">
+    <h3 class="text-success fw-bold mb-3">✅ Patient Registered Successfully</h3>
+    <p class="text-muted">Share these login details with the patient (shown once).</p>
+
+    <div class="mb-3">
+      <div>File Number (Username):</div>
+      <div class="fs-5 fw-bold text-primary">{{ file_no }}</div>
+    </div>
+
+    <div class="mb-3">
+      <div>Temporary Password:</div>
+      <div class="fs-5 fw-bold text-danger">{{ temp_pwd }}</div>
+    </div>
+
+    <div class="mt-4">
+      <a href="{{ url_for('dashboard_main') }}" class="btn btn-primary me-2">⬅ Back to Dashboard</a>
+      <button onclick="window.print()" class="btn btn-outline-secondary">🖨 Print</button>
+    </div>
+  </div>
+</div>
+
+<style>
+@media print {
+  a, button { display: none !important; }
+}
+</style>
+{% endblock %}

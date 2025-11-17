@@ -1,0 +1,215 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<style>
+    .rx-card {
+        border-radius: 16px;
+        background: #ffffff;
+        padding: 25px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        border: 1px solid #e8e8e8;
+    }
+
+    .rx-title {
+        font-weight: 700;
+        color: #0d6efd;
+        letter-spacing: 0.5px;
+    }
+
+    .rx-subtitle {
+        font-size: 15px;
+        color: #555;
+        margin-bottom: 15px;
+    }
+
+    .remove-row {
+        cursor: pointer;
+        color: #dc3545;
+        font-weight: bold;
+    }
+
+    .form-control, .form-select {
+        border-radius: 10px;
+    }
+</style>
+
+<div class="container mt-4">
+    <div class="rx-card">
+
+        <!-- HEADER -->
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h3 class="rx-title">📝 Visit Prescription</h3>
+            <a href="{{ url_for('view_patient', patient_id=visit.patient_id) }}#visits"
+               class="btn btn-secondary btn-sm">⬅ Back</a>
+        </div>
+        <div class="rx-subtitle">
+            <strong>Patient:</strong> {{ patient.full_name }} |
+            <strong>Visit Date:</strong> {{ visit.visit_date }}
+        </div>
+
+        <!-- FORM START -->
+        <form method="POST">
+
+            <!-- Notes -->
+            <div class="mb-3">
+                <label class="form-label fw-bold">General Notes (Optional):</label>
+                <textarea class="form-control" name="notes" rows="2"
+                          placeholder="Instructions for the patient...">{{ prescription.notes if prescription else '' }}</textarea>
+            </div>
+
+            <hr>
+
+            <!-- PRESCRIPTION ITEMS TITLE -->
+            <h5 class="fw-bold mb-3">Prescription Items:</h5>
+
+            <div id="rx-container">
+
+                {% if prescription and prescription.items %}
+                    {% for item in prescription.items %}
+                    <div class="row g-2 mb-3 rx-row">
+
+                        <div class="col-md-2">
+                            <input type="text" name="dosage_form[]" class="form-control"
+                                   placeholder="Tablet / Cap / Syrup" value="{{ item.dosage_form }}">
+                        </div>
+
+                        <div class="col-md-3">
+                            <input type="text" name="drug_name[]" class="form-control"
+                                   placeholder="Drug Name" value="{{ item.drug_name }}">
+                        </div>
+
+                        <div class="col-md-2">
+                            <input type="text" name="strength[]" class="form-control"
+                                   placeholder="Strength" value="{{ item.strength }}">
+                        </div>
+
+                        <div class="col-md-1">
+                            <input type="text" name="quantity[]" class="form-control"
+                                   placeholder="Qty" value="{{ item.quantity }}">
+                        </div>
+
+                        <div class="col-md-2">
+                            <input type="text" name="frequency[]" class="form-control"
+                                   placeholder="e.g. 1-0-1" value="{{ item.frequency }}">
+                        </div>
+
+                        <div class="col-md-1">
+                            <input type="text" name="duration[]" class="form-control"
+                                   placeholder="Days" value="{{ item.duration }}">
+                        </div>
+
+                        <div class="col-md-1 text-center d-flex align-items-center">
+                            <span class="remove-row ms-2" onclick="removeRow(this)">✖</span>
+                        </div>
+
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <!-- DEFAULT EMPTY ROW -->
+                    <div class="row g-2 mb-3 rx-row">
+
+                        <div class="col-md-2">
+                            <input type="text" name="dosage_form[]" class="form-control"
+                                   placeholder="Tablet / Cap / Syrup">
+                        </div>
+
+                        <div class="col-md-3">
+                            <input type="text" name="drug_name[]" class="form-control"
+                                   placeholder="Drug Name">
+                        </div>
+
+                        <div class="col-md-2">
+                            <input type="text" name="strength[]" class="form-control"
+                                   placeholder="Strength">
+                        </div>
+
+                        <div class="col-md-1">
+                            <input type="text" name="quantity[]" class="form-control"
+                                   placeholder="Qty">
+                        </div>
+
+                        <div class="col-md-2">
+                            <input type="text" name="frequency[]" class="form-control"
+                                   placeholder="e.g. 1-0-1">
+                        </div>
+
+                        <div class="col-md-1">
+                            <input type="text" name="duration[]" class="form-control"
+                                   placeholder="Days">
+                        </div>
+
+                        <div class="col-md-1 text-center d-flex align-items-center">
+                            <span class="remove-row ms-2" onclick="removeRow(this)">✖</span>
+                        </div>
+
+                    </div>
+                {% endif %}
+
+            </div>
+
+            <!-- ADD ROW BUTTON -->
+            <button type="button" class="btn btn-outline-primary btn-sm mb-3" onclick="addRow()">➕ Add Another Drug</button>
+
+            <hr>
+
+            <!-- SAVE BUTTON -->
+            <button class="btn btn-success w-100">💾 Save Prescription</button>
+
+        </form>
+    </div>
+</div>
+
+
+<!-- JS FOR ADD/REMOVE -->
+<script>
+function addRow() {
+    let container = document.getElementById("rx-container");
+
+    let row = document.createElement("div");
+    row.classList.add("row", "g-2", "mb-3", "rx-row");
+
+    row.innerHTML = `
+        <div class="col-md-2">
+            <input type="text" name="dosage_form[]" class="form-control"
+                   placeholder="Tablet / Cap / Syrup">
+        </div>
+
+        <div class="col-md-3">
+            <input type="text" name="drug_name[]" class="form-control"
+                   placeholder="Drug Name">
+        </div>
+
+        <div class="col-md-2">
+            <input type="text" name="strength[]" class="form-control"
+                   placeholder="Strength">
+        </div>
+
+        <div class="col-md-1">
+            <input type="text" name="quantity[]" class="form-control"
+                   placeholder="Qty">
+        </div>
+
+        <div class="col-md-2">
+            <input type="text" name="frequency[]" class="form-control"
+                   placeholder="e.g. 1-0-1">
+        </div>
+
+        <div class="col-md-1">
+            <input type="text" name="duration[]" class="form-control"
+                   placeholder="Days">
+        </div>
+
+        <div class="col-md-1 text-center d-flex align-items-center">
+            <span class="remove-row ms-2" onclick="removeRow(this)">✖</span>
+        </div>
+    `;
+
+    container.appendChild(row);
+}
+
+function removeRow(el) {
+    el.closest(".rx-row").remove();
+}
+</script>
+
+{% endblock %}

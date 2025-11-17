@@ -1,0 +1,34 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container mt-4">
+  <h3 class="text-primary mb-3">📅 Upcoming Appointments</h3>
+  <a href="{{ url_for('dashboard_main') }}" class="btn btn-secondary mb-3">⬅ Back to Dashboard</a>
+
+  {% if appointments %}
+  <table class="table table-striped table-bordered text-center align-middle">
+    <thead class="table-dark">
+      <tr>
+        <th>Patient Name</th>
+        <th>File No</th>
+        <th>Next Appointment</th>
+        <th>Doctor</th>
+        <th>Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for t in appointments %}
+      <tr>
+        <td>{{ t.patient.full_name }}</td>
+        <td>{{ t.patient.file_no }}</td>
+        <td><strong>{{ t.next_appointment }}</strong></td>
+        <td>{{ t.doctor }}</td>
+        <td>{{ t.notes or '—' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="alert alert-info">No upcoming appointments found.</div>
+  {% endif %}
+</div>
+{% endblock %}

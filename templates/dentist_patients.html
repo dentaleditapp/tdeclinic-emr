@@ -1,0 +1,39 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container mt-4">
+  <h4 class="text-primary fw-bold">👨‍⚕️ Patients Under Dr. {{ dentist_name }}</h4>
+  <a href="{{ url_for('doctor_dashboard') }}" class="btn btn-secondary btn-sm mb-3">⬅ Back</a>
+
+  {% if patients %}
+  <table class="table table-bordered table-hover shadow-sm">
+    <thead class="table-light">
+      <tr>
+        <th>File No</th>
+        <th>Name</th>
+        <th>Contact</th>
+        <th>Last Treatment</th>
+        <th>Next Appointment</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in patients %}
+      <tr>
+        <td>{{ p.file_no }}</td>
+        <td>{{ p.full_name }}</td>
+        <td>{{ p.contact }}</td>
+        <td>{{ p.treatments[-1].date if p.treatments else '—' }}</td>
+        <td>{{ p.treatments[-1].next_appointment if p.treatments else '—' }}</td>
+        <td>
+          <a href="{{ url_for('view_patient', patient_id=p.id) }}"
+             class="btn btn-outline-primary btn-sm">🔍 View</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="text-muted">No patients found for this dentist.</p>
+  {% endif %}
+</div>
+{% endblock %}

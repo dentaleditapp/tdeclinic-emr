@@ -1,0 +1,28 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container mt-4">
+  <h3 class="text-primary fw-bold mb-4">👨‍⚕️ Dentist Overview Dashboard</h3>
+
+  <table class="table table-bordered table-hover shadow-sm">
+    <thead class="table-light">
+      <tr>
+        <th>Dentist</th>
+        <th>Total Patients</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for d in doctors %}
+      <tr>
+        <td>{{ d.doctor }}</td>
+        <td>{{ d.patient_count }}</td>
+        <td>
+          <a href="{{ url_for('view_dentist_patients', dentist_name=d.doctor) }}"
+             class="btn btn-outline-primary btn-sm">👁 View Patients</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

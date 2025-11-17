@@ -1,0 +1,754 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container mt-4">
+
+  <!-- HEADER -->
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="text-primary fw-bold mb-0">🦷 Your Dental Record — {{ patient.full_name }}</h3>
+    <a href="{{ url_for('logout') }}" class="btn btn-outline-secondary btn-sm">Logout</a>
+  </div>
+  <hr>
+
+  <!-- SUMMARY HEADER CARD -->
+  <div class="card shadow-sm mb-3">
+    <div class="card-body d-flex flex-wrap justify-content-between align-items-center">
+      <div class="mb-2">
+        <div class="fw-bold text-secondary small">File No</div>
+        <div class="fs-5 fw-bold">{{ patient.file_no }}</div>
+      </div>
+      <div class="mb-2">
+        <div class="fw-bold text-secondary small">Name</div>
+        <div class="fw-semibold">{{ patient.full_name }}</div>
+      </div>
+      <div class="mb-2">
+        <div class="fw-bold text-secondary small">Gender</div>
+        <div>{{ patient.gender }}</div>
+      </div>
+      <div class="mb-2">
+        <div class="fw-bold text-secondary small">Age / DOB</div>
+        <div>{{ patient.dob_or_age or '—' }}</div>
+      </div>
+      <div class="mb-2">
+        <div class="fw-bold text-secondary small">Contact</div>
+        <div>{{ patient.contact or '—' }}</div>
+      </div>
+      <div class="mb-2">
+        <div class="fw-bold text-secondary small">Registered On</div>
+        <div>{{ patient.date }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUMMARY BOXES -->
+  <div class="row mb-3">
+    <div class="col-md-3 col-6 mb-2">
+      <div class="card shadow-sm border-0 h-100">
+        <div class="card-body py-2">
+          <div class="small text-muted">Total Visits</div>
+          <div class="fs-4 fw-bold text-primary">{{ visits|length }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3 col-6 mb-2">
+      <div class="card shadow-sm border-0 h-100">
+        <div class="card-body py-2">
+          <div class="small text-muted">Total Treatments</div>
+          <div class="fs-4 fw-bold text-primary">{{ treatments|length }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3 col-6 mb-2">
+      <div class="card shadow-sm border-0 h-100">
+        <div class="card-body py-2">
+          <div class="small text-muted">Total Paid</div>
+          <div class="fs-5 fw-bold text-success">{{ total_paid or 0 }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3 col-6 mb-2">
+      <div class="card shadow-sm border-0 h-100">
+        <div class="card-body py-2">
+          <div class="small text-muted">Outstanding</div>
+          <div class="fs-5 fw-bold {{ 'text-danger' if remaining > 0 else 'text-success' }}">
+            {{ remaining or 0 }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <ul class="nav nav-tabs" id="patientTabs" role="tablist">
+    <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#info">👤 Personal Info</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#medical">🩺 Medical History</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#dental">🪥 Dental History</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#visits">📝 Visits & Treatments</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#payment">💰 Payments</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#attachments">📎 Attachments</a></li>
+  </ul>
+
+  <div class="tab-content mt-3">
+
+    <!-- 1) PERSONAL INFO (READ-ONLY) -->
+    <div class="tab-pane fade show active" id="info">
+      <div class="card shadow-sm">
+        <div class="card-header fw-bold">Personal Information</div>
+        <div class="card-body">
+          <table class="table table-bordered mb-0">
+            <tr>
+              <th>File No</th><td>{{ patient.file_no }}</td>
+              <th>Date Registered</th><td>{{ patient.date }}</td>
+            </tr>
+            <tr>
+              <th>Name</th><td>{{ patient.full_name }}</td>
+              <th>Father / Spouse</th><td>{{ patient.father_or_spouse_name or '—' }}</td>
+            </tr>
+            <tr>
+              <th>Gender</th><td>{{ patient.gender }}</td>
+              <th>Age / DOB</th><td>{{ patient.dob_or_age or '—' }}</td>
+            </tr>
+            <tr>
+              <th>Marital Status</th><td>{{ patient.marital_status or '—' }}</td>
+              <th>Occupation</th><td>{{ patient.occupation or '—' }}</td>
+            </tr>
+            <tr>
+              <th>Contact</th><td>{{ patient.contact or '—' }}</td>
+              <th>Email</th><td>{{ patient.email or '—' }}</td>
+            </tr>
+            <tr>
+              <th>CNIC</th><td>{{ patient.cnic or '—' }}</td>
+              <th>Address</th><td>{{ patient.address or '—' }}</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2) MEDICAL HISTORY (READ-ONLY) -->
+    <div class="tab-pane fade" id="medical">
+      <div class="card shadow-sm">
+        <div class="card-header fw-bold">Medical History</div>
+        <div class="card-body">
+
+          {% set yes = '<span class="badge bg-success">Yes</span>' %}
+          {% set no = '<span class="badge bg-light text-muted">No</span>' %}
+          {% macro yn(v) %}{{ yes|safe if v=='Yes' else no|safe }}{% endmacro %}
+
+          <div class="row">
+            <div class="col-md-6">
+              <table class="table table-bordered table-sm">
+                <thead class="table-light"><tr><th colspan="2">Systemic Conditions</th></tr></thead>
+                <tbody>
+                  <tr><td>Heart Disease</td><td class="text-end">{{ yn(patient.heart_disease) }}</td></tr>
+                  <tr><td>High Blood Pressure</td><td class="text-end">{{ yn(patient.blood_pressure) }}</td></tr>
+                  <tr><td>Diabetes</td><td class="text-end">{{ yn(patient.diabetes) }}</td></tr>
+                  <tr><td>Asthma</td><td class="text-end">{{ yn(patient.asthma) }}</td></tr>
+                  <tr><td>Tuberculosis</td><td class="text-end">{{ yn(patient.tuberculosis) }}</td></tr>
+                  <tr><td>Hepatitis / Jaundice</td><td class="text-end">{{ yn(patient.hepatitis) }}</td></tr>
+                  <tr><td>Bleeding Disorder</td><td class="text-end">{{ yn(patient.bleeding_disorder) }}</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="col-md-6">
+              <table class="table table-bordered table-sm">
+                <thead class="table-light"><tr><th colspan="2">Other Conditions</th></tr></thead>
+                <tbody>
+                  <tr><td>Epilepsy</td><td class="text-end">{{ yn(patient.epilepsy) }}</td></tr>
+                  <tr><td>Thyroid Disorder</td><td class="text-end">{{ yn(patient.thyroid_disorder) }}</td></tr>
+                  <tr><td>Kidney Disease</td><td class="text-end">{{ yn(patient.kidney_disease) }}</td></tr>
+                  <tr><td>Stomach Ulcers</td><td class="text-end">{{ yn(patient.stomach_ulcers) }}</td></tr>
+                  <tr><td>Psychiatric Disorder</td><td class="text-end">{{ yn(patient.psychiatric_disorder) }}</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <table class="table table-bordered table-sm mt-2 mb-0">
+            <tbody>
+              <tr><th style="width:25%">Medications</th><td>{{ patient.medications or '—' }}</td></tr>
+              <tr><th>Allergies</th><td>{{ patient.allergies or '—' }}</td></tr>
+              <tr><th>Other Health Issues</th><td>{{ patient.other_health or '—' }}</td></tr>
+              <tr><th>Past Surgery / Hospitalization</th><td>{{ patient.surgery_history or '—' }}</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3) DENTAL HISTORY (READ-ONLY, SAME AS VIEW_PATIENT) -->
+    <div class="tab-pane fade" id="dental">
+      <div class="card shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <span class="fw-bold">Dental History</span>
+        </div>
+
+        <div class="card-body">
+
+          {% set yes = '<span class="badge bg-success">Yes</span>' %}
+          {% set no  = '<span class="badge bg-light text-muted">No</span>' %}
+          {% macro yn_d(v) %}{{ yes|safe if v=='Yes' else no|safe }}{% endmacro %}
+
+          <div class="accordion" id="dentalAccordion">
+
+            <!-- 1) LAST VISIT + PREVIOUS TREATMENTS -->
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button" type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#dentalSec1">
+                  🗓️ Last Visit & Previous Dental Treatment
+                </button>
+              </h2>
+
+              <div id="dentalSec1" class="accordion-collapse collapse show"
+                   data-bs-parent="#dentalAccordion">
+                <div class="accordion-body">
+
+                  <h6 class="fw-bold text-primary">Last Dental Visit</h6>
+                  <table class="table table-bordered table-sm mb-3">
+                    <tr><th style="width:20%">Date</th><td>{{ patient.last_dental_visit or '—' }}</td></tr>
+                    <tr><th>Reason</th><td>{{ patient.last_dental_reason or '—' }}</td></tr>
+                  </table>
+
+                  <h6 class="fw-bold text-primary">Previous Treatments</h6>
+                  <table class="table table-bordered table-sm mb-3">
+                    <tr><td>Fillings</td><td class="text-end">{{ yn_d(patient.treat_fillings) }}</td></tr>
+                    <tr><td>Root Canal</td><td class="text-end">{{ yn_d(patient.treat_rct) }}</td></tr>
+                    <tr><td>Crowns / Bridges</td><td class="text-end">{{ yn_d(patient.treat_crowns) }}</td></tr>
+                    <tr><td>Extractions</td><td class="text-end">{{ yn_d(patient.treat_extractions) }}</td></tr>
+                    <tr><td>Scaling</td><td class="text-end">{{ yn_d(patient.treat_scaling) }}</td></tr>
+                    <tr><td>Denture</td><td class="text-end">{{ yn_d(patient.treat_denture) }}</td></tr>
+                    <tr><td>Braces</td><td class="text-end">{{ yn_d(patient.treat_braces) }}</td></tr>
+                    <tr><td>Implants</td><td class="text-end">{{ yn_d(patient.treat_implant) }}</td></tr>
+                    <tr><td>Other</td><td>{{ patient.treat_other or '—' }}</td></tr>
+                  </table>
+
+                </div>
+              </div>
+            </div>
+
+            <!-- 2) CURRENT ORAL HEALTH -->
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#dentalSec2">
+                  🦷 Current Oral Health (Gums, Teeth, Trauma)
+                </button>
+              </h2>
+
+              <div id="dentalSec2" class="accordion-collapse collapse"
+                   data-bs-parent="#dentalAccordion">
+                <div class="accordion-body">
+
+                  <!-- Gum Health -->
+                  <h6 class="fw-bold text-primary">Gum Health</h6>
+                  <table class="table table-bordered table-sm mb-3">
+                    <tr><td>Bleeding Gums</td><td class="text-end">{{ yn_d(patient.gum_bleeding) }}</td></tr>
+                    <tr><td>Loose Teeth</td><td class="text-end">{{ yn_d(patient.gum_loose) }}</td></tr>
+                    <tr><td>Bad Breath</td><td class="text-end">{{ yn_d(patient.gum_badbreath) }}</td></tr>
+
+                    {% if patient.gum_bleeding!='Yes' and patient.gum_loose!='Yes' and patient.gum_badbreath!='Yes' %}
+                    <tr>
+                      <td colspan="2" class="text-center text-muted fst-italic">
+                        No gum issues reported
+                      </td>
+                    </tr>
+                    {% endif %}
+                  </table>
+
+                  <!-- Caries -->
+                  <h6 class="fw-bold text-primary">Caries / Sensitivity</h6>
+                  <table class="table table-bordered table-sm mb-3">
+                    <tr><td>Sensitive Teeth</td><td class="text-end">{{ yn_d(patient.sensitive_teeth) }}</td></tr>
+                    <tr><td>Frequent Cavities</td><td class="text-end">{{ yn_d(patient.frequent_cavities) }}</td></tr>
+
+                    {% if patient.sensitive_teeth!='Yes' and patient.frequent_cavities!='Yes' %}
+                    <tr>
+                      <td colspan="2" class="text-center text-muted fst-italic">
+                        No caries or sensitivity reported
+                      </td>
+                    </tr>
+                    {% endif %}
+                  </table>
+
+                  <!-- Trauma -->
+                  <h6 class="fw-bold text-primary">Trauma</h6>
+                  <table class="table table-bordered table-sm mb-3">
+                    <tr><td>Fractured Tooth</td><td class="text-end">{{ yn_d(patient.fractured_tooth) }}</td></tr>
+                    <tr><td>Jaw Accident</td><td class="text-end">{{ yn_d(patient.jaw_accident) }}</td></tr>
+
+                    {% if patient.fractured_tooth!='Yes' and patient.jaw_accident!='Yes' %}
+                    <tr>
+                      <td colspan="2" class="text-center text-muted fst-italic">
+                        No trauma history reported
+                      </td>
+                    </tr>
+                    {% endif %}
+                  </table>
+
+                  <!-- Soft Tissue -->
+                  <h6 class="fw-bold text-primary">Soft Tissue / Oral Mucosa</h6>
+                  <div class="border p-2 rounded bg-light small">
+                    {{ patient.soft_tissue_notes or 'Normal unless specified.' }}
+                  </div>
+
+                </div>
+              </div>
+            </div>
+
+            <!-- 3) HABITS / RISK / TMJ -->
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#dentalSec3">
+                  🚬 Habits, Risk & TMJ
+                </button>
+              </h2>
+
+              <div id="dentalSec3" class="accordion-collapse collapse"
+                   data-bs-parent="#dentalAccordion">
+                <div class="accordion-body">
+
+                  <!-- Habits -->
+                  <h6 class="fw-bold text-primary">Habits</h6>
+                  <table class="table table-bordered table-sm mb-3">
+                    <tr><td>Tobacco</td><td class="text-end">{{ yn_d(patient.uses_tobacco) }}</td></tr>
+                    <tr><td>Naswar</td><td class="text-end">{{ yn_d(patient.uses_naswar) }}</td></tr>
+                    <tr><td>Paan</td><td class="text-end">{{ yn_d(patient.uses_paan) }}</td></tr>
+                    <tr><td>Smoking</td><td class="text-end">{{ yn_d(patient.uses_smoke) }}</td></tr>
+
+                    {% if patient.uses_smoke == 'Yes' %}
+                    <tr><td>Smoking Frequency</td><td>{{ patient.smoking_frequency }}</td></tr>
+                    {% endif %}
+                  </table>
+
+                  <!-- TMJ -->
+                  <h6 class="fw-bold text-primary">TMJ & Bite</h6>
+                  <table class="table table-bordered table-sm mb-3">
+                    <tr><td>TMJ Issue</td><td class="text-end">{{ yn_d(patient.tmj_issue) }}</td></tr>
+                    <tr><td>TMJ Notes</td><td>{{ patient.tmj_notes or '—' }}</td></tr>
+                  </table>
+
+                  <!-- Oral Hygiene -->
+                  <h6 class="fw-bold text-primary">Oral Hygiene & Caries Risk</h6>
+                  <table class="table table-bordered table-sm mb-3">
+                    <tr><td>Oral Hygiene</td><td>{{ patient.oral_hygiene or 'Not recorded' }}</td></tr>
+                    <tr><td>Caries Risk</td><td>{{ patient.caries_risk or 'Not recorded' }}</td></tr>
+                  </table>
+
+                </div>
+              </div>
+            </div>
+
+            <!-- 4) NOTES & EXPERIENCE -->
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#dentalSec4">
+                  📝 Notes & Patient Experience
+                </button>
+              </h2>
+
+              <div id="dentalSec4" class="accordion-collapse collapse"
+                   data-bs-parent="#dentalAccordion">
+                <div class="accordion-body">
+
+                  <table class="table table-bordered table-sm mb-3">
+                    <tr><th style="width:25%">Bad Dental Experience</th><td>{{ patient.bad_experience or '—' }}</td></tr>
+                    <tr><th>Experience Details</th><td>{{ patient.bad_experience_details or '—' }}</td></tr>
+                  </table>
+
+                  <h6 class="fw-bold text-primary">Additional Notes</h6>
+                  <div class="border rounded p-2 bg-light">
+                    {{ patient.dental_notes or '—' }}
+                  </div>
+
+                </div>
+              </div>
+            </div>
+
+          </div><!-- /accordion -->
+
+        </div>
+      </div>
+    </div>
+
+    <!-- 4) VISITS & TREATMENTS (READ-ONLY, PREMIUM STYLE) -->
+    <div class="tab-pane fade" id="visits">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold text-primary mb-0">📝 Visits & Treatments</h5>
+
+        <div class="input-group input-group-sm" style="max-width:260px;">
+          <span class="input-group-text">🔍</span>
+          <input type="text" id="visitSearchInput" class="form-control" placeholder="Search visits & treatments...">
+        </div>
+      </div>
+
+      {% if visits %}
+        {% for v in visits %}
+          {% set visit_treatments = v.treatments %}
+          <div class="card mb-2 shadow-sm visit-card rounded-3 border-0">
+
+            <!-- HEADER -->
+            <div class="card-header border-0 border-bottom p-0">
+              <div class="card-header visit-card-header-bg d-flex justify-content-between align-items-center flex-wrap">
+
+                <div class="d-flex align-items-center mb-1">
+                  <div class="me-4">
+                    <div class="small text-muted">Visit Date</div>
+                    <div class="fw-semibold">{{ v.visit_date or '—' }}</div>
+                  </div>
+
+                  <div class="border-start ps-3 me-4">
+                    <div class="small text-muted">Dentist</div>
+                    <div class="fw-semibold">
+                      {% if v.dentist_obj %}
+                        {{ v.dentist_obj.name }}
+                      {% else %}
+                        {{ v.dentist_name or '—' }}
+                      {% endif %}
+                    </div>
+                  </div>
+
+                  <div class="border-start ps-3 me-4">
+                    <div class="small text-muted">Treatments</div>
+                    <div class="fw-semibold">
+                      {% if visit_treatments %}
+                        {{ visit_treatments|length if visit_treatments.__class__.__name__ != 'AppenderQuery' else visit_treatments.count() }}
+                      {% else %}
+                        0
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+
+                <div class="d-flex align-items-center mb-1">
+                  <div class="text-end me-3">
+                    <div class="small text-muted">Total Fee</div>
+                    <div class="fw-bold text-primary">
+                      {% set vf = 0 %}
+                      {% for t in (visit_treatments.all() if visit_treatments.__class__.__name__ == 'AppenderQuery' else visit_treatments) %}
+                        {% set vf = vf + (t.amount or 0) %}
+                      {% endfor %}
+                      {{ vf }}
+                    </div>
+                  </div>
+
+                  <button class="btn btn-sm btn-link text-primary ms-2"
+                          data-bs-toggle="collapse"
+                          data-bs-target="#visitBody{{ v.id }}">
+                    Details ▼
+                  </button>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- BODY -->
+            <div id="visitBody{{ v.id }}" class="collapse">
+              <div class="card-body visit-content">
+
+                <div class="row">
+                  <div class="col-md-8">
+                    <div class="mb-2">
+                      <strong>Chief Complaint:</strong>
+                      <span class="visit-text">{{ v.chief_complaint or '—' }}</span>
+                    </div>
+
+                    {% if v.notes %}
+                    <div class="mb-2">
+                      <strong>Visit Notes:</strong>
+                      <span class="visit-text text-muted">{{ v.notes }}</span>
+                    </div>
+                    {% endif %}
+                  </div>
+
+                  <div class="col-md-4">
+                    {% if v.bp or v.pregnant or v.breastfeeding %}
+                    <div class="border rounded p-2 bg-light small mb-2">
+                      <div class="fw-bold mb-1">Vitals</div>
+                      {% if v.bp %}<div><strong>BP:</strong> {{ v.bp }}</div>{% endif %}
+                      {% if v.pregnant %}
+                        <div><strong>Pregnant:</strong> {{ v.pregnant }}
+                          {% if v.pregnancy_weeks %} ({{ v.pregnancy_weeks }} wks){% endif %}
+                        </div>
+                      {% endif %}
+                      {% if v.breastfeeding %}
+                        <div><strong>Breastfeeding:</strong> {{ v.breastfeeding }}</div>
+                      {% endif %}
+                    </div>
+                    {% endif %}
+                  </div>
+                </div>
+
+                <hr>
+
+                <h6 class="fw-bold text-secondary mb-2">Treatments in this Visit</h6>
+
+                {% if visit_treatments %}
+                  <div class="table-responsive">
+                    <table class="table table-borderless table-sm align-middle">
+                      <thead class="table-light">
+                        <tr>
+                          <th style="width:4%;"></th>
+                          <th>Date</th>
+                          <th>Treatment</th>
+                          <th>Tooth</th>
+                          <th>Dentist</th>
+                          <th>Fee</th>
+                          <th>Status / Next</th>
+                          <th style="width:6%;"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% for t in (visit_treatments.all() if visit_treatments.__class__.__name__ == 'AppenderQuery' else visit_treatments) %}
+                        <tr class="treatment-row">
+                          <td class="align-middle"><div class="timeline-dot"></div></td>
+                          <td class="treat-text text-muted small">{{ t.date }}</td>
+                          <td class="treat-text fw-semibold">{{ t.treatment_type }}</td>
+                          <td class="treat-text">{{ t.tooth_number or t.multi_tooth or '—' }}</td>
+                          <td class="treat-text">{{ t.dentist.name if t.dentist else t.doctor }}</td>
+                          <td class="treat-text">{{ t.amount or 0 }}</td>
+                          <td class="treat-text">
+                            {% if t.status == 'Completed' %}
+                              <span class="badge bg-success mb-1">Completed</span><br>
+                            {% else %}
+                              <span class="badge bg-warning text-dark mb-1">Ongoing</span><br>
+                            {% endif %}
+                            <small class="text-muted">Next: {{ t.next_appointment or '—' }}</small>
+                          </td>
+                          <td class="text-end">
+                            <a href="{{ url_for('view_treatment', treatment_id=t.id) }}"
+                               class="btn btn-sm btn-outline-primary">🔍</a>
+                          </td>
+                        </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+                {% else %}
+                  <p class="text-muted mb-0">No treatments recorded for this visit.</p>
+                {% endif %}
+
+              </div>
+            </div>
+
+          </div>
+        {% endfor %}
+      {% else %}
+        <p class="text-muted mb-0">No visits recorded yet.</p>
+      {% endif %}
+    </div>
+
+    <!-- 5) PAYMENTS -->
+    <div class="tab-pane fade" id="payment">
+      <div class="card shadow-sm mb-3">
+        <div class="card-header bg-warning fw-bold text-dark">
+          💰 Payment Summary
+        </div>
+        <div class="card-body">
+          <table class="table table-bordered w-auto mb-3">
+            <tr><th>Total Fee</th><td>{{ total_fee or 0 }}</td></tr>
+            <tr><th>Total Paid</th><td>{{ total_paid or 0 }}</td></tr>
+            <tr>
+              <th>Remaining</th>
+              <td class="{{ 'text-danger fw-bold' if remaining > 0 else 'text-success fw-bold' }}">
+                {{ remaining or 0 }}
+              </td>
+            </tr>
+          </table>
+
+          {% if payments %}
+          <div class="table-responsive">
+            <table class="table table-bordered table-sm align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Date</th>
+                  <th>Treatment</th>
+                  <th>Fee</th>
+                  <th>Paid</th>
+                  <th>Remaining (at that time)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for p in payments %}
+                <tr>
+                  <td>{{ p.date }}</td>
+                  <td>{{ p.treatment.treatment_type if p.treatment else '—' }}</td>
+                  <td>{{ p.treatment_fee or 0 }}</td>
+                  <td>{{ p.amount_paid or 0 }}</td>
+                  <td>{{ p.remaining_balance or 0 }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+            <p class="text-muted mb-0">No payments recorded.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- 6) ATTACHMENTS -->
+    <div class="tab-pane fade" id="attachments">
+      <div class="card shadow-sm">
+        <div class="card-header bg-secondary text-white fw-bold">
+          📎 Uploaded Files
+        </div>
+        <div class="card-body">
+          {% if radiographs %}
+          <div class="row">
+            {% for r in radiographs %}
+            <div class="col-md-3 col-sm-4 col-6 text-center mb-3">
+              <div class="border rounded p-2 h-100 hover-shadow-sm">
+                <a href="{{ url_for('uploaded_file', filename=r.filename) }}" target="_blank">
+                  {% if r.filename.endswith('.pdf') %}
+                    <img src="{{ url_for('static', filename='pdf_icon.png') }}"
+                         class="img-thumbnail mb-1"
+                         style="height:120px; object-fit:contain;">
+                  {% else %}
+                    <img src="{{ url_for('uploaded_file', filename=r.filename) }}"
+                         class="img-thumbnail mb-1"
+                         style="height:120px; object-fit:cover;">
+                  {% endif %}
+                </a>
+                <div class="small text-muted">
+                  {{ r.uploaded_at }}
+                  {% if r.uploaded_by %}<br>By: {{ r.uploaded_by }}{% endif %}
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+            <p class="text-muted mb-0">No attachments uploaded.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+  </div> <!-- /tab-content -->
+
+</div> <!-- /container -->
+
+<style>
+  .nav-tabs .nav-link {
+    font-weight: 600;
+    color: #0d6efd !important;
+    background-color: #f8f9fa;
+  }
+  .nav-tabs .nav-link.active {
+    background-color: #ffffff !important;
+    border-bottom: 3px solid #0d6efd;
+  }
+  .card { border-radius: 12px; }
+  .hover-shadow-sm:hover {
+    box-shadow: 0 .125rem .25rem rgba(0,0,0,.15) !important;
+  }
+
+  /* Smooth universal animation */
+  * { transition: 0.25s ease !important; }
+
+  /* Glassmorphism Base for visits */
+  #visits .visit-card {
+    position: relative;
+    border-radius: 18px !important;
+    overflow: hidden;
+    padding: 0 !important;
+    margin-bottom: 18px;
+    background: rgba(255,255,255,0.70) !important;
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(200,200,200,0.35) !important;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+  }
+  #visits .visit-card:hover {
+    transform: translateY(-4px) scale(1.005);
+    box-shadow: 0 14px 32px rgba(0,0,0,0.15);
+  }
+  .visit-card-header-bg {
+    padding: 14px 20px !important;
+    border-bottom: 1px solid rgba(255,255,255,0.35);
+  }
+  #visits .visit-card:nth-of-type(3n+1) .visit-card-header-bg {
+    background: linear-gradient(145deg,#dff3ff,#f6fcff);
+    border-left: 8px solid #8ecbff;
+  }
+  #visits .visit-card:nth-of-type(3n+2) .visit-card-header-bg {
+    background: linear-gradient(145deg,#ffecec,#fffafa);
+    border-left: 8px solid #ffb3b3;
+  }
+  #visits .visit-card:nth-of-type(3n+3) .visit-card-header-bg {
+    background: linear-gradient(145deg,#e3fff8,#faffff);
+    border-left: 8px solid #9eeedc;
+  }
+  .timeline-dot {
+    width: 12px;
+    height: 12px;
+    background: #ffffff;
+    border-radius: 50%;
+    border: 3px solid #b5d8ff;
+    box-shadow: 0 0 8px rgba(160,200,255,0.55);
+  }
+  .treatment-row:hover {
+    background: rgba(13,110,253,0.06) !important;
+    transform: scale(1.003);
+  }
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  var searchInput = document.getElementById("visitSearchInput");
+  if (!searchInput) return;
+
+  searchInput.addEventListener("input", function () {
+    var q = this.value.toLowerCase().trim();
+    var visitCards = document.querySelectorAll(".visit-card");
+
+    visitCards.forEach(function(card) {
+      var visitTextBlocks = card.querySelectorAll(".visit-text");
+      var treatmentRows = card.querySelectorAll(".treatment-row");
+
+      var visitMatches = false;
+
+      // Check visit-level text
+      visitTextBlocks.forEach(function(el) {
+        if (el.textContent.toLowerCase().includes(q)) {
+          visitMatches = true;
+        }
+      });
+
+      var anyTreatmentVisible = false;
+
+      treatmentRows.forEach(function(row) {
+        var tCells = row.querySelectorAll(".treat-text");
+        var rowText = "";
+        tCells.forEach(function(td) {
+          rowText += " " + td.textContent.toLowerCase();
+        });
+
+        if (!q || rowText.includes(q)) {
+          row.style.display = "";
+          anyTreatmentVisible = true;
+        } else {
+          row.style.display = "none";
+        }
+      });
+
+      if (!q) {
+        card.style.display = "";
+      } else {
+        if (visitMatches || anyTreatmentVisible) {
+          card.style.display = "";
+        } else {
+          card.style.display = "none";
+        }
+      }
+    });
+  });
+});
+</script>
+{% endblock %}
