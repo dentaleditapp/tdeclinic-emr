@@ -2451,7 +2451,7 @@ def add_treatment(patient_id):
         wl_pairs = []
         maf_pairs = []
 
-        canal_list = ["MB","MB1","MB2","DB","DL","P","M","B","C","ML","Li","L","D"]
+        canal_list = ["MB","MB1","MB2","DB","DL","P","M","D","A","B","C","ML","Li","L","D"]
 
         for canal in canal_list:
             wl_val = request.form.get(f"wl_{canal}")
@@ -3116,6 +3116,91 @@ def print_payment_summary(patient_id):
         datetime=datetime
     )
 
+# ---------------------------------
+# PRINT: VISIT SUMMARY
+# ---------------------------------
+@app.route("/print_visit_summary/<int:visit_id>")
+def print_visit_summary(visit_id):
+    # Allow doctor, assistant, patient to print
+    if session.get("role") not in ["doctor", "assistant", "patient"]:
+        return redirect(url_for("login"))
+
+    visit = Visit.query.get_or_404(visit_id)
+    patient = visit.patient
+
+    # All treatments under this visit
+    visit_treatments = Treatment.query.filter_by(visit_id=visit.id).order_by(Treatment.date.asc()).all()
+
+    # Visit-level prescription (one-to-one)
+    rx = visit.prescription
+
+    return render_template(
+        "print_visit_summary.html",
+        patient=patient,
+        visit=visit,
+        treatments=visit_treatments,
+        rx=rx
+    )
+
+
+# ---------------------------------
+# PRINT: VISIT INVOICE
+# ---------------------------------
+@app.route("/print_visit_invoice/<int:visit_id>")
+def print_visit_invoice(visit_id):
+    if session.get("role") not in ["doctor", "assistant", "patient"]:
+        return redirect(url_for("login"))
+
+    visit = Visit.query.get_or_404(visit_id)
+    patient = visit.patient
+
+    # All treatments under this visit
+    visit_treatments = Treatment.query.filter_by(visit_id=visit.id).all()
+    treatment_ids = [t.id for t in visit_treatments]
+
+    # Payments linked to these treatments
+    if treatment_ids:
+        visit_payments = Payment.query.filter(Payment.treatment_id.in_(treatment_ids)) \
+                                      .order_by(Payment.date.asc()).all()
+    else:
+        visit_payments = []
+
+    visit_fee = sum(t.amount or 0 for t in visit_treatments)
+    paid_for_visit = sum(p.amount_paid or 0 for p in visit_payments)
+    remaining_for_visit = visit_fee - paid_for_visit
+
+    return render_template(
+        "print_visit_invoice.html",
+        patient=patient,
+        visit=visit,
+        treatments=visit_treatments,
+        payments=visit_payments,
+        visit_fee=visit_fee,
+        paid_for_visit=paid_for_visit,
+        remaining_for_visit=remaining_for_visit
+    )
+
+
+# ---------------------------------
+# PRINT: MEDICAL / DENTAL PROCEDURE CERTIFICATE
+# ---------------------------------
+@app.route("/print_medical_certificate/<int:visit_id>")
+def print_medical_certificate(visit_id):
+    if session.get("role") not in ["doctor", "assistant", "patient"]:
+        return redirect(url_for("login"))
+
+    visit = Visit.query.get_or_404(visit_id)
+    patient = visit.patient
+
+    # Treatments for wording (e.g. extractions, RCT etc.)
+    visit_treatments = Treatment.query.filter_by(visit_id=visit.id).all()
+
+    return render_template(
+        "print_medical_certificate.html",
+        patient=patient,
+        visit=visit,
+        treatments=visit_treatments
+    )
 
 @app.route("/upload_file/<int:patient_id>", methods=["GET", "POST"])
 def upload_file(patient_id):
@@ -3297,8 +3382,7 @@ def patient_logins():
 
 # ---------------------------------
 # ---------------------------------
-# PATIENT DASHBOARD (READ-ONLY PATIENT VIEW)
-# -----------------------------------------
+#
 @app.route("/dashboard_patient")
 def dashboard_patient():
     # Only patient role allowed
@@ -3316,10 +3400,26 @@ def dashboard_patient():
                         .order_by(Visit.visit_date.desc()) \
                         .all()
 
+    # Attach prescriptions (if exist) to each visit
+    for visit in visits:
+        prescription = VisitPrescription.query.filter_by(visit_id=visit.id).first()
+        visit.prescriptions = (
+            prescription.items if prescription and prescription.items else []
+        )
+        visit.rx_notes = prescription.notes if prescription else None
+
     # Fetch all treatments (for totals + any summaries if needed)
     treatments = Treatment.query.filter_by(patient_id=patient.id) \
                                 .order_by(Treatment.date.desc()) \
                                 .all()
+
+    # Attach prescription-related treatment data
+    for treatment in treatments:
+        prescription = VisitPrescription.query.filter_by(visit_id=treatment.visit_id).first()
+        treatment.prescriptions = (
+            prescription.items if prescription and prescription.items else []
+        )
+        treatment.rx_notes = prescription.notes if prescription else None
 
     # Payments & radiographs
     payments = Payment.query.filter_by(patient_id=patient.id) \
@@ -3330,12 +3430,12 @@ def dashboard_patient():
                                   .order_by(Radiograph.uploaded_at.desc()) \
                                   .all()
 
-    # Totals (safe if amount / amount_paid is None)
+    # Totals
     total_fee = sum(t.amount or 0 for t in treatments)
     total_paid = sum(p.amount_paid or 0 for p in payments)
     remaining = total_fee - total_paid
 
-    # Render dedicated read-only patient dashboard
+    # Render dedicated read-only patient dashboard with all data
     return render_template(
         "dashboard_patient.html",
         patient=patient,

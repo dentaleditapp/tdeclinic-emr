@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Visit Invoice - {{ patient.full_name }}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <style>
+    body { font-size: 13px; }
+    .clinic-header { border-bottom: 2px solid #000; margin-bottom: 10px; padding-bottom: 8px; }
+    .clinic-name { font-size: 20px; font-weight: 700; }
+    .clinic-sub { font-size: 12px; }
+    .small-text { font-size: 11px; }
+    @media print {
+      .no-print { display: none !important; }
+      body { margin: 10mm; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="no-print text-end mt-2 me-3">
+  <button onclick="window.print()" class="btn btn-sm btn-primary">🖨 Print</button>
+</div>
+
+<div class="container mt-3">
+
+  <!-- CLINIC HEADER -->
+  <div class="clinic-header d-flex justify-content-between">
+    <div>
+      <div class="clinic-name">The Dental Edit Clinic</div>
+      <div class="clinic-sub">Smile Better Feel Better</div>
+      <div class="clinic-sub small-text">
+        Peshawar Medical Complex, Near Hayatabad Toll Plaza, Peshawar Ringroad Phone: 03235242928
+      </div>
+    </div>
+    <div class="text-end small-text">
+      <strong>Invoice No:</strong>
+      {{ patient.file_no }}-{{ visit.visit_date|replace('-', '') if visit.visit_date else visit.id }}
+    </div>
+  </div>
+
+  <h5 class="text-center mb-2"><strong>Visit Invoice</strong></h5>
+
+  <!-- PATIENT & VISIT DATA -->
+  <div class="row small-text mb-2">
+    <div class="col-6">
+      <p class="mb-1"><strong>Patient Name:</strong> {{ patient.full_name }}</p>
+      <p class="mb-1"><strong>File No:</strong> {{ patient.file_no }}</p>
+      <p class="mb-1"><strong>Gender:</strong> {{ patient.gender or '—' }}</p>
+      <p class="mb-1"><strong>Age / DOB:</strong> {{ patient.dob_or_age or '—' }}</p>
+    </div>
+    <div class="col-6">
+      <p class="mb-1">
+        <strong>Dentist:</strong>
+        {% if visit.dentist_obj %}
+          {{ visit.dentist_obj.name }}
+        {% else %}
+          {{ visit.dentist_name or '—' }}
+        {% endif %}
+      </p>
+      <p class="mb-1"><strong>Visit Date:</strong> {{ visit.visit_date or '—' }}</p>
+      <p class="mb-1"><strong>Contact:</strong> {{ patient.contact or '—' }}</p>
+    </div>
+  </div>
+
+  <hr class="mt-1 mb-2">
+
+  <!-- TREATMENT FEE TABLE -->
+  <div class="small-text mb-2">
+    <strong>Treatments in this Visit</strong>
+    {% if treatments %}
+    <table class="table table-sm table-bordered mt-1 mb-1">
+      <thead class="table-light">
+        <tr>
+          <th style="width:5%;">#</th>
+          <th>Treatment</th>
+          <th style="width:20%;">Tooth / Site</th>
+          <th style="width:20%;">Fee (Rs.)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in treatments %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ t.treatment_type }}</td>
+            <td>{{ t.tooth_number or t.multi_tooth or '—' }}</td>
+            <td>{{ t.amount or 0 }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+      <p class="text-muted">No treatments recorded for this visit.</p>
+    {% endif %}
+  </div>
+
+  <!-- SUMMARY -->
+  <div class="row small-text mb-2">
+    <div class="col-12">
+      <table class="table table-sm table-borderless mb-0">
+        <tr>
+          <th class="text-start">Total Fee for this Visit:</th>
+          <td class="text-end"><strong>{{ visit_fee or 0 }}</strong></td>
+        </tr>
+        <tr>
+          <th class="text-start">Amount Paid (linked to this visit):</th>
+          <td class="text-end text-success"><strong>{{ paid_for_visit or 0 }}</strong></td>
+        </tr>
+        <tr>
+          <th class="text-start">Remaining for this Visit:</th>
+          <td class="text-end {{ 'text-danger' if remaining_for_visit > 0 else 'text-success' }}">
+            <strong>{{ remaining_for_visit or 0 }}</strong>
+          </td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- FOOTER NOTE -->
+  <div class="mt-3 small-text text-muted text-center">
+    This invoice is computer-generated from The Dental Edit Clinic EMR
+    and does not require a handwritten signature.
+  </div>
+
+</div>
+
+</body>
+</html>

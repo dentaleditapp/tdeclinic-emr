@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Medical / Dental Certificate - {{ patient.full_name }}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <style>
+    body { font-size: 13px; }
+    .clinic-header { border-bottom: 2px solid #000; margin-bottom: 15px; padding-bottom: 8px; }
+    .clinic-name { font-size: 20px; font-weight: 700; }
+    .clinic-sub { font-size: 12px; }
+    .cert-title { font-size: 18px; font-weight: 600; text-decoration: underline; }
+    .small-text { font-size: 11px; }
+    @media print {
+      .no-print { display: none !important; }
+      body { margin: 10mm; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="no-print text-end mt-2 me-3">
+  <button onclick="window.print()" class="btn btn-sm btn-primary">🖨 Print</button>
+</div>
+
+<div class="container mt-3">
+
+  <!-- CLINIC HEADER -->
+  <div class="clinic-header d-flex justify-content-between">
+    <div>
+      <div class="clinic-name">The Dental Edit Clinic</div>
+      <div class="clinic-sub">Smile Better Feel Better</div>
+      <div class="clinic-sub small-text">
+        Peshawar Medical Complex, Near Hayatabad Toll Plaza, Peshawar Ringroad Phone: 03235242928
+      </div>
+    </div>
+    <div class="text-end small-text">
+      <strong>Date:</strong> {{ visit.visit_date or '' }}<br>
+      <strong>Certificate No:</strong>
+      {{ patient.file_no }}-{{ visit.visit_date|replace('-', '') if visit.visit_date else '____' }}
+    </div>
+  </div>
+
+  <div class="text-center mb-3">
+    <span class="cert-title">Medical / Dental Procedure Certificate</span>
+  </div>
+
+  <div class="small-text mb-3">
+    <p>To whom it may concern,</p>
+
+    <p>
+      This is to certify that
+      <strong>{{ patient.full_name }}</strong>,
+      {% if patient.gender %}({{ patient.gender }}){% endif %}
+      {% if patient.dob_or_age %}, aged {{ patient.dob_or_age }}{% endif %},
+      File No. <strong>{{ patient.file_no }}</strong>,
+      was examined and treated at our clinic on
+      <strong>{{ visit.visit_date or '____' }}</strong>.
+    </p>
+
+    {% set treatments_list = [] %}
+    {% for t in treatments %}
+      {% if t.treatment_type %}
+        {% set _ = treatments_list.append(t.treatment_type) %}
+      {% endif %}
+    {% endfor %}
+
+    {% if treatments_list %}
+      <p>
+        The nature of the dental procedure(s) performed included:
+        <strong>{{ treatments_list|unique|join(', ') }}</strong>.
+      </p>
+    {% else %}
+      <p>
+        The patient was seen for dental consultation and appropriate clinical management.
+      </p>
+    {% endif %}
+
+    <p>
+      In my opinion, the above-named patient may require rest and avoidance of strenuous
+      physical activity on the day of treatment and may be excused from school/work
+      as applicable for that day.
+    </p>
+
+    <p>
+      This certificate is issued on the request of the patient for whatever purpose it may serve.
+    </p>
+  </div>
+
+  <div class="row small-text mt-4">
+    <div class="col-6">
+      <p><strong>Dentist:</strong>
+        {% if visit.dentist_obj %}
+          {{ visit.dentist_obj.name }}
+        {% else %}
+          {{ visit.dentist_name or '________________' }}
+        {% endif %}
+      </p>
+    </div>
+  </div>
+
+  <div class="mt-4 small-text text-muted text-center">
+    This is a computer-generated certificate from The Dental Edit Clinic EMR
+    and does not require a handwritten signature.
+  </div>
+
+</div>
+</body>
+</html>

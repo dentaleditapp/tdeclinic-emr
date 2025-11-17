@@ -589,6 +589,24 @@
         </ul>
       </div>
       {% endif %}
+      <!-- PRINT BUTTONS FOR THIS VISIT -->
+      <div class="btn-group ms-2">
+        <a href="{{ url_for('print_visit_summary', visit_id=v.id) }}"
+           target="_blank"
+           class="btn btn-sm btn-outline-secondary">
+          🖨 Summary
+        </a>
+        <a href="{{ url_for('print_visit_invoice', visit_id=v.id) }}"
+           target="_blank"
+           class="btn btn-sm btn-outline-secondary">
+          💰 Invoice
+        </a>
+        <a href="{{ url_for('print_medical_certificate', visit_id=v.id) }}"
+           target="_blank"
+           class="btn btn-sm btn-outline-secondary">
+          📄 Certificate
+        </a>
+      </div>
 
       <button class="btn btn-sm btn-link text-primary ms-2"
               data-bs-toggle="collapse"
