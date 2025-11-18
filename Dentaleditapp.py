@@ -23,12 +23,16 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "supersecretkey"
-app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DB_FILE}"
+
+# PostgreSQL database from Render
+app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://tdeclinic_user:0Xp7rg0zCz7VXk5pyKfaS1bnEbjuRjJw@dpg-d4ec6rgdl3ps73bmlarg-a.frankfurt-postgres.render.com/tdeclinic"
+
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
 db = SQLAlchemy(app)
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "pdf"}
+
 
 
 # -----------------------------
