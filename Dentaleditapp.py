@@ -490,14 +490,49 @@ class Patient(db.Model):
     soft_tissue_notes = db.Column(db.Text)
     dental_notes = db.Column(db.Text)
 
-    # 🧾 RELATIONSHIPS
-    cases = db.relationship('Case', backref='patient', cascade="all, delete-orphan", lazy='joined')
-    treatments = db.relationship('Treatment', backref='patient', cascade="all, delete-orphan", lazy='joined')
-    visits = db.relationship('Visit', backref='patient', cascade="all, delete-orphan", lazy=True)
+    # 🧾 RELATIONSHIPS (with cascades)
+    cases = db.relationship(
+        'Case',
+        backref=db.backref('patient', passive_deletes=True),
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        lazy='joined'
+    )
+
+    treatments = db.relationship(
+        'Treatment',
+        backref=db.backref('patient', passive_deletes=True),
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        lazy='joined'
+    )
+
+    visits = db.relationship(
+        'Visit',
+        backref=db.backref('patient', passive_deletes=True),
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        lazy=True
+    )
+
+    payments = db.relationship(
+        'Payment',
+        backref=db.backref('patient', passive_deletes=True),
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        lazy=True
+    )
+
+    radiographs = db.relationship(
+        'Radiograph',
+        backref=db.backref('patient', passive_deletes=True),
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        lazy=True
+    )
 
     def __repr__(self):
         return f"<Patient {self.full_name}>"
-
 
 
 # =========================================================
@@ -511,7 +546,7 @@ class Case(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
 
-    # Rename STRING ID to case_code
+    # Human readable code e.g. CASE-1-20250101-01
     case_code = db.Column(db.String(50), unique=True, nullable=False)
 
     title = db.Column(db.String(150))
@@ -531,14 +566,25 @@ class Case(db.Model):
     new_conditions = db.Column(db.Text)
     change_in_allergy_or_medication = db.Column(db.Text)
 
-    patient_id = db.Column(db.Integer, db.ForeignKey("patients.id"))
+    # -----------------------------
+    # RELATIONSHIPS / FK
+    # -----------------------------
+    patient_id = db.Column(
+        db.Integer,
+        db.ForeignKey("patients.id", ondelete="CASCADE"),   # 👈 FIX
+        nullable=False
+    )
 
     treatments = db.relationship(
         "Treatment",
-        backref="case",
+        backref=db.backref("case", passive_deletes=True),
         cascade="all, delete-orphan",
+        passive_deletes=True,  # 👈 REQUIRED FOR POSTGRESQL
         lazy="dynamic"
     )
+
+    def __repr__(self):
+        return f"<Case {self.case_code}>"
 
 # =========================================================
 # 🟦 VISIT MODEL (NEW — Each Appointment = 1 Visit)
@@ -554,45 +600,60 @@ class Visit(db.Model):
         default=datetime.now().strftime("%Y-%m-%d")
     )
 
-    # 🔗 Foreign Keys
-    patient_id = db.Column(db.Integer, db.ForeignKey('patients.id'))
-    doctor_id = db.Column(db.Integer, db.ForeignKey('dentists.id'))
+    # -----------------------------
+    # FOREIGN KEYS (PostgreSQL-safe)
+    # -----------------------------
+    patient_id = db.Column(
+        db.Integer,
+        db.ForeignKey('patients.id', ondelete="CASCADE"),
+        nullable=False
+    )
 
-    # 🩺 Dynamic per-visit health info
+    doctor_id = db.Column(
+        db.Integer,
+        db.ForeignKey('dentists.id', ondelete="SET NULL"),
+        nullable=True
+    )
+
+    # -----------------------------
+    # Visit Details
+    # -----------------------------
     chief_complaint = db.Column(db.String(255))
     acute_issue = db.Column(db.String(255))
     bp = db.Column(db.String(50))
 
-    # 🟣 Pregnancy ONLY if female
-    pregnant = db.Column(db.String(10))        # Yes / No
+    # Pregnancy flags
+    pregnant = db.Column(db.String(10))
     pregnancy_weeks = db.Column(db.String(20))
     breastfeeding = db.Column(db.String(10))
 
-    # Visit Notes
     notes = db.Column(db.Text)
-
-    # Files per-visit
     attachment = db.Column(db.String(200))
 
-    # ---------------------------------------------------------
-    # 🔁 Relationship: Visit → Treatments
-    # ---------------------------------------------------------
+    # -----------------------------
+    # RELATIONSHIPS
+    # -----------------------------
+
+    # VISIT → TREATMENTS (many)
     treatments = db.relationship(
         'Treatment',
-        backref='visit',
+        backref=db.backref('visit', passive_deletes=True),
         cascade="all, delete-orphan",
+        passive_deletes=True,  # REQUIRED for PostgreSQL
         lazy='dynamic'
     )
 
-    # ---------------------------------------------------------
-    # 💊 NEW: Visit-Level Prescription (ONE PER VISIT)
-    # ---------------------------------------------------------
+    # VISIT → PRESCRIPTION (one)
     prescription = db.relationship(
         'VisitPrescription',
-        backref='visit',
+        backref=db.backref('visit', passive_deletes=True),
         uselist=False,
-        cascade="all, delete-orphan"
+        cascade="all, delete-orphan",
+        passive_deletes=True
     )
+
+    def __repr__(self):
+        return f"<Visit {self.visit_date} (ID: {self.id})>"
 
 # ---------------------------------
 # VISIT LEVEL PRESCRIPTION MODELS
@@ -1611,7 +1672,7 @@ class Treatment(db.Model):
     # 🔄 Parent treatment (multi-step RCT/Ortho)
     parent_treatment_id = db.Column(
         db.Integer,
-        db.ForeignKey('treatments.id'),
+        db.ForeignKey('treatments.id', ondelete="CASCADE"),   # 👈 FIXED
         nullable=True
     )
 
@@ -1619,6 +1680,7 @@ class Treatment(db.Model):
         'Treatment',
         backref=db.backref('parent_treatment', remote_side='Treatment.id'),
         cascade="all, delete-orphan",
+        passive_deletes=True,
         lazy=True
     )
 
@@ -1676,17 +1738,33 @@ class Treatment(db.Model):
     doctor = db.Column(db.String(120))
 
     # -----------------------------
-    # 🌟 FOREIGN KEYS
+    # 🌟 FOREIGN KEYS (ALL FIXED)
     # -----------------------------
-    dentist_id = db.Column(db.Integer, db.ForeignKey('dentists.id'))
-    patient_id = db.Column(db.Integer, db.ForeignKey('patients.id'))
-    visit_id = db.Column(db.Integer, db.ForeignKey('visits.id'))
+    dentist_id = db.Column(
+        db.Integer,
+        db.ForeignKey('dentists.id', ondelete="SET NULL"),
+        nullable=True
+    )
 
-    # ❗ IMPORTANT FIX:
-    # Case ID must remain INTEGER
-    case_id = db.Column(db.Integer, db.ForeignKey('cases.id'), nullable=True)
+    patient_id = db.Column(
+        db.Integer,
+        db.ForeignKey('patients.id', ondelete="CASCADE"),  # 👈 IMPORTANT
+        nullable=False
+    )
 
-    # This stores your human-readable code: CASE-1-20250101-02
+    visit_id = db.Column(
+        db.Integer,
+        db.ForeignKey('visits.id', ondelete="CASCADE"),     # 👈 FIX
+        nullable=True
+    )
+
+    case_id = db.Column(
+        db.Integer,
+        db.ForeignKey('cases.id', ondelete="SET NULL"),     # 👈 IMPORTANT
+        nullable=True
+    )
+
+    # Human-readable case code
     case_code = db.Column(db.String(50))
 
     # -----------------------------
@@ -1694,14 +1772,17 @@ class Treatment(db.Model):
     # -----------------------------
     followups = db.relationship(
         'FollowUp',
-        backref='treatment',
+        backref=db.backref('treatment', passive_deletes=True),
         cascade="all, delete-orphan",
+        passive_deletes=True,
         lazy='joined'
     )
 
     related_files = db.relationship(
         'Radiograph',
-        backref='treatment',
+        backref=db.backref('treatment', passive_deletes=True),
+        cascade="all, delete-orphan",
+        passive_deletes=True,
         lazy=True
     )
 
@@ -1744,15 +1825,49 @@ class Payment(db.Model):
     __tablename__ = 'payments'
 
     id = db.Column(db.Integer, primary_key=True)
-    patient_id = db.Column(db.Integer, db.ForeignKey("patients.id"))
-    treatment_id = db.Column(db.Integer, db.ForeignKey("treatments.id"), nullable=True)
-    case_id = db.Column(db.Integer, db.ForeignKey("cases.id"), nullable=True)
+
+    # ----------------------------
+    # FOREIGN KEYS (Cascade Safe)
+    # ----------------------------
+
+    # If patient is deleted → delete payments
+    patient_id = db.Column(
+        db.Integer,
+        db.ForeignKey("patients.id", ondelete="CASCADE"),
+        nullable=False
+    )
+
+    # If treatment is deleted → delete its payments
+    treatment_id = db.Column(
+        db.Integer,
+        db.ForeignKey("treatments.id", ondelete="CASCADE"),
+        nullable=True
+    )
+
+    # If case is deleted → delete case payments
+    case_id = db.Column(
+        db.Integer,
+        db.ForeignKey("cases.id", ondelete="CASCADE"),
+        nullable=True
+    )
+
+    # ----------------------------
+    # PAYMENT DETAILS
+    # ----------------------------
     date = db.Column(db.String(20))
     treatment_fee = db.Column(db.Float)
     amount_paid = db.Column(db.Float)
     remaining_balance = db.Column(db.Float)
 
-    treatment = db.relationship('Treatment', backref='payments', lazy=True)
+    # ----------------------------
+    # RELATIONSHIP
+    # ----------------------------
+    treatment = db.relationship(
+        'Treatment',
+        backref=db.backref('payments', passive_deletes=True),
+        lazy=True,
+        passive_deletes=True
+    )
 
 
 class Radiograph(db.Model):
@@ -3357,22 +3472,30 @@ def delete_payment(payment_id):
 # ---------------------------------
 @app.route("/delete_patient/<int:patient_id>")
 def delete_patient(patient_id):
+
     if not require_role(["doctor", "assistant"]):
         return redirect(url_for("login"))
+
     patient = Patient.query.get_or_404(patient_id)
-    Treatment.query.filter_by(patient_id=patient.id).delete()
-    Payment.query.filter_by(patient_id=patient.id).delete()
-    for f in Radiograph.query.filter_by(patient_id=patient.id):
-        path = os.path.join(app.config["UPLOAD_FOLDER"], f.filename)
-        if os.path.exists(path):
-            os.remove(path)
-        db.session.delete(f)
+
+    # 🔥 DELETE UPLOADED FILES (Radiographs/Attachments)
+    radiographs = Radiograph.query.filter_by(patient_id=patient.id).all()
+    for r in radiographs:
+        if r.filename:
+            path = os.path.join(app.config["UPLOAD_FOLDER"], r.filename)
+            if os.path.exists(path):
+                os.remove(path)
+
+    # 🔥 DELETE PATIENT LOGIN ACCOUNT (if exists)
     user = User.query.filter_by(username=patient.file_no, role="patient").first()
     if user:
         db.session.delete(user)
+
+    # 🔥 MAIN DELETE (Cascade will delete all related records)
     db.session.delete(patient)
     db.session.commit()
-    flash("Patient and related data deleted.", "success")
+
+    flash("Patient and ALL related records deleted successfully.", "success")
     return redirect(url_for("dashboard_main"))
 
 
@@ -3495,5 +3618,6 @@ if __name__ == "__main__":
     with app.app_context():
         db.create_all()
         print("✅ PostgreSQL tables created / verified.")
+
 
     app.run(debug=True)
