@@ -702,15 +702,17 @@
                         <td class="treat-text text-muted small">{{ t.date }}</td>
                         <td class="treat-text fw-semibold">{{ t.treatment_type }}</td>
                         <td class="treat-text">
-  {% if t.case_id %}
-    <span class="badge bg-info text-dark">{{ t.case_id }}</span>
-    {% if t.case %}
-      <small class="text-muted">({{ t.case.title or 'Untitled' }})</small>
-    {% endif %}
+
+  {% if t.case and t.case.case_code %}
+      <span class="badge bg-info text-dark">
+        {{ t.case.case_code }}
+      </span>
   {% else %}
-    <span class="text-muted">—</span>
+      <span class="text-muted">—</span>
   {% endif %}
+
 </td>
+
 
                         <td class="treat-text">{{ t.tooth_number or t.multi_tooth or '—' }}</td>
                         <td class="treat-text">{{ t.dentist.name if t.dentist else t.doctor }}</td>
