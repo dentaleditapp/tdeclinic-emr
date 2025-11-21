@@ -53,23 +53,19 @@
   <!-- CLINIC HEADER -->
   <div class="clinic-header">
 
-    <!-- Logo -->
     <img src="{{ url_for('static', filename='logo.png') }}" class="clinic-logo">
 
-    <!-- Address + Contact -->
     <div class="clinic-sub">
       Peshawar Medical Complex, Near Hayatabad Toll Plaza, Peshawar Ring Road<br>
       Phone: 0323-5242928 — www.tdeclinic.com
     </div>
 
-    <!-- Summary ID -->
     <div class="small-text mt-2">
       <strong>Visit Summary ID:</strong>
       {{ patient.file_no }}-{{ visit.visit_date|replace('-', '') if visit.visit_date else visit.id }}
     </div>
   </div>
 
-  <!-- TITLE -->
   <h5 class="text-center mb-3"><strong>Visit Summary</strong></h5>
 
   <!-- PATIENT INFO -->
@@ -178,14 +174,20 @@
     {% endif %}
   </div>
 
-  <!-- QR CODE BLOCK -->
+  <!-- QR CODE -->
   <div class="text-center mt-4">
-    <img src="{{ url_for('qr_code', doc_type='summary',
-      doc_uid=patient.file_no ~ '-' ~ (visit.visit_date|replace('-', ''))) }}"
-      style="width:125px;">
+    <img
+      src="{{
+        url_for(
+          'qr_code',
+          doc_type='summary',
+          doc_uid=patient.file_no ~ '-' ~ (visit.visit_date|replace('-', '') if visit.visit_date else visit.id)
+        )
+      }}"
+      style="width:125px;"
+    >
     <div class="small-text text-muted mt-1">
-      Scan to verify authenticity<br>
-      Or visit: www.tdeclinic.com/verify/summary/{{ patient.file_no }}-{{ visit.visit_date|replace('-', '') }}
+      Scan to verify authenticity
     </div>
   </div>
 

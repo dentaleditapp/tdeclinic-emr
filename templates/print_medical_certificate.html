@@ -101,19 +101,19 @@
 
     {% if treatments_list %}
       <p>
-        The nature of the dental procedure(s) performed included:
+        The dental procedure(s) performed included:
         <strong>{{ treatments_list|unique|join(', ') }}</strong>.
       </p>
     {% else %}
       <p>
-        The patient was seen for dental consultation and appropriate clinical management.
+        The patient was seen for dental consultation and suitable management.
       </p>
     {% endif %}
 
     <p>
-      Based on the treatment performed, the patient may require rest and should avoid
-      strenuous activity for the remainder of the day. He/She may be excused from work
-      or school for the above-mentioned date.
+      Based on today’s treatment, the patient may require rest and avoidance
+      of strenuous activity for the remainder of the day and may be excused
+      from school/work for the above-mentioned date.
     </p>
 
     <p>
@@ -133,18 +133,24 @@
 
   <!-- QR CODE -->
   <div class="text-center mt-4 mb-3">
-    <img src="{{ url_for('qr_code', doc_type='certificate',
-      doc_uid=patient.file_no ~ '-' ~ (visit.visit_date|replace('-', ''))) }}"
-      style="width:125px;">
+    <img
+      src="{{
+        url_for(
+          'qr_code',
+          doc_type='certificate',
+          doc_uid=patient.file_no ~ '-' ~ (visit.visit_date|replace('-', '') if visit.visit_date else visit.id)
+        )
+      }}"
+      style="width:130px;"
+    >
     <div class="small-text text-muted mt-1">
-      Scan to verify authenticity<br>
-      Or visit: www.tdeclinic.com/verify/certificate/{{ patient.file_no }}-{{ visit.visit_date|replace('-', '') }}
+      Scan to verify authenticity
     </div>
   </div>
 
   <!-- FOOTER -->
   <div class="small-text text-muted text-center mt-4">
-    This certificate is computer-generated from The Dental Edit Clinic EMR
+    This certificate is computer-generated from The Dental Edit Clinic EMR<br>
     and does not require a handwritten signature.
   </div>
 

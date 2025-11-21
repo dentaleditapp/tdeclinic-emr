@@ -18,7 +18,7 @@
     .clinic-logo {
       width: 170px;
       height: auto;
-      margin-bottom: 6px;
+      margin-bottom: 8px;
     }
 
     .clinic-sub {
@@ -47,26 +47,27 @@
   <!-- CLINIC HEADER -->
   <div class="clinic-header">
 
-    <!-- LOGO -->
+    <!-- Logo -->
     <img src="{{ url_for('static', filename='logo.png') }}" class="clinic-logo">
 
-    <!-- CONTACT -->
+    <!-- Address + Contact -->
     <div class="clinic-sub">
       Peshawar Medical Complex, Near Hayatabad Toll Plaza, Peshawar Ring Road<br>
       Phone: 0323-5242928 — www.tdeclinic.com
     </div>
 
-    <!-- INVOICE NUMBER -->
+    <!-- Invoice Number (UID) -->
     <div class="small-text mt-2">
       <strong>Invoice No:</strong>
       {{ patient.file_no }}-{{ visit.visit_date|replace('-', '') if visit.visit_date else visit.id }}
     </div>
+
   </div>
 
   <!-- TITLE -->
   <h5 class="text-center mb-3"><strong>Visit Invoice</strong></h5>
 
-  <!-- PATIENT & VISIT INFO -->
+  <!-- PATIENT INFO -->
   <div class="row small-text mb-3">
     <div class="col-6">
       <p class="mb-1"><strong>Patient Name:</strong> {{ patient.full_name }}</p>
@@ -119,7 +120,7 @@
     {% endif %}
   </div>
 
-  <!-- SUMMARY -->
+  <!-- PAYMENT SUMMARY -->
   <div class="row small-text mb-2">
     <div class="col-12">
       <table class="table table-sm table-borderless mb-0">
@@ -141,14 +142,20 @@
     </div>
   </div>
 
-  <!-- QR CODE -->
+  <!-- QR CODE (QR only — no text URL) -->
   <div class="text-center mt-4">
-    <img src="{{ url_for('qr_code', doc_type='invoice',
-      doc_uid=patient.file_no ~ '-' ~ (visit.visit_date|replace('-', ''))) }}"
-      style="width:125px;">
+    <img
+      src="{{
+        url_for(
+          'qr_code',
+          doc_type='invoice',
+          doc_uid=patient.file_no ~ '-' ~ (visit.visit_date|replace('-', '') if visit.visit_date else visit.id)
+        )
+      }}"
+      style="width:125px;"
+    >
     <div class="small-text text-muted mt-1">
-      Scan to verify authenticity<br>
-      Or visit: www.tdeclinic.com/verify/invoice/{{ patient.file_no }}-{{ visit.visit_date|replace('-', '') }}
+      Scan to verify authenticity
     </div>
   </div>
 
