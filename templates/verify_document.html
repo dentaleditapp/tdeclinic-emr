@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Document Verification - The Dental Edit Clinic</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <style>
+    body { font-size: 14px; background:#f8f9fa; }
+    .card {
+      max-width: 500px;
+      margin: 40px auto;
+      border-radius: 10px;
+    }
+    .status-valid { color: #198754; font-weight: 700; }
+    .status-invalid { color: #dc3545; font-weight: 700; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <h4 class="text-center mb-2">The Dental Edit Clinic</h4>
+      <p class="text-center mb-1 small text-muted">
+        Peshawar Medical Complex, Near Hayatabad Toll Plaza, Peshawar Ringroad<br>
+        Phone: 0323-5242928 — www.tdeclinic.com
+      </p>
+      <hr>
+
+      {% if status == 'valid' and patient and visit %}
+        <p class="text-center mb-1">
+          <strong>{{ doc_label }}</strong>
+        </p>
+        <p class="text-center small mb-3">
+          Document ID: <strong>{{ doc_uid }}</strong>
+        </p>
+
+        <table class="table table-sm">
+          <tr>
+            <th scope="row">Patient Name</th>
+            <td>{{ patient.full_name }}</td>
+          </tr>
+          <tr>
+            <th scope="row">File No</th>
+            <td>{{ patient.file_no }}</td>
+          </tr>
+          <tr>
+            <th scope="row">Visit Date</th>
+            <td>{{ visit.visit_date or '—' }}</td>
+          </tr>
+        </table>
+
+        <p class="text-center mt-2 status-valid">
+          ✅ This document is authentic and verified by The Dental Edit Clinic EMR.
+        </p>
+
+      {% else %}
+        <p class="text-center mb-3">
+          <strong>{{ doc_label }}</strong>
+        </p>
+        <p class="text-center small mb-3">
+          Document ID: <strong>{{ doc_uid }}</strong>
+        </p>
+        <p class="text-center status-invalid">
+          ❌ This document could not be verified. It may be invalid or not found.
+        </p>
+      {% endif %}
+
+      <p class="text-center small text-muted mt-3 mb-0">
+        If you have any doubts, please contact The Dental Edit Clinic directly.
+      </p>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

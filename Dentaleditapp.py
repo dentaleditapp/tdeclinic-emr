@@ -6,7 +6,7 @@ from functools import wraps
 
 from flask import (
     Flask, render_template, request, redirect,
-    url_for, session, flash, send_from_directory
+    url_for, session, flash, send_from_directory, send_file
 )
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -1892,6 +1892,20 @@ with app.app_context():
 def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
+# -----------------------------
+# HELPER: BUILD DOC UID
+# -----------------------------
+def build_doc_uid(patient, visit):
+    """
+    Returns your existing ID format:
+    <FileNo>-YYYYMMDD if visit.visit_date exists,
+    otherwise <FileNo>-<visit.id>
+    """
+    if visit.visit_date:
+        date_str = visit.visit_date.replace("-", "")  # '2025-11-21' → '20251121'
+        return f"{patient.file_no}-{date_str}"
+    else:
+        return f"{patient.file_no}-{visit.id}"
 
 def require_role(roles):
     return session.get("role") in roles
@@ -1945,6 +1959,89 @@ def get_canals_for_tooth(tooth_number):
 
     return ["M"]
 
+import qrcode
+from io import BytesIO
+
+@app.route("/qr/<doc_type>/<doc_uid>.png")
+def qr_code(doc_type, doc_uid):
+    """
+    Returns a PNG QR image that encodes a public verification URL
+    like /verify/<doc_type>/<doc_uid>
+    """
+
+    # Build absolute verification URL (e.g., https://yourdomain/verify/summary/10001-20251121)
+    verify_url = url_for("verify_document", doc_type=doc_type, doc_uid=doc_uid, _external=True)
+
+    # Generate QR
+    img = qrcode.make(verify_url)
+    buf = BytesIO()
+    img.save(buf, format="PNG")
+    buf.seek(0)
+
+    return send_file(buf, mimetype="image/png")
+@app.route("/verify/<doc_type>/<doc_uid>")
+def verify_document(doc_type, doc_uid):
+    """
+    Minimal verification page:
+    - Shows clinic, doc type, doc UID
+    - Patient name, file no, visit date
+    - Says 'Authentic' if found, otherwise 'Invalid or not found'
+    """
+    # doc_uid format: <FileNo>-YYYYMMDD  (e.g., 10021-20251121)
+    file_no = None
+    key_part = None
+
+    try:
+        file_no, key_part = doc_uid.rsplit("-", 1)
+    except ValueError:
+        file_no = None
+        key_part = None
+
+    visit = None
+    patient = None
+
+    if file_no and key_part:
+        # Case 1: key_part is YYYYMMDD
+        if len(key_part) == 8 and key_part.isdigit():
+            date_str = f"{key_part[0:4]}-{key_part[4:6]}-{key_part[6:8]}"  # '20251121' -> '2025-11-21'
+            visit = (
+                db.session.query(Visit)
+                .join(Patient, Visit.patient_id == Patient.id)
+                .filter(Patient.file_no == file_no, Visit.visit_date == date_str)
+                .first()
+            )
+        # Fallback: key_part is visit.id
+        if not visit and key_part.isdigit():
+            visit = (
+                db.session.query(Visit)
+                .join(Patient, Visit.patient_id == Patient.id)
+                .filter(Patient.file_no == file_no, Visit.id == int(key_part))
+                .first()
+            )
+
+    if visit:
+        patient = visit.patient
+        status = "valid"
+    else:
+        status = "invalid"
+
+    # Normalize doc_type text
+    label_map = {
+        "summary": "Visit Summary",
+        "invoice": "Visit Invoice",
+        "certificate": "Medical / Dental Certificate"
+    }
+    doc_label = label_map.get(doc_type, "Clinic Document")
+
+    return render_template(
+        "verify_document.html",
+        status=status,
+        doc_type=doc_type,
+        doc_label=doc_label,
+        doc_uid=doc_uid,
+        patient=patient,
+        visit=visit,
+    )
 
 
 # ---------------------------------
@@ -2486,7 +2583,18 @@ def add_treatment(patient_id):
 
     patient = Patient.query.get_or_404(patient_id)
     dentists = Dentist.query.all()
-    cases = Case.query.filter_by(patient_id=patient.id).order_by(Case.id.desc()).all()
+    cases = (
+        Case.query
+        .join(Treatment, Treatment.case_id == Case.id)
+        .filter(
+            Case.patient_id == patient.id,
+            Case.status != "Deleted",  # Hide deleted cases
+            Treatment.id.isnot(None)  # Case must have at least 1 treatment
+        )
+        .distinct()
+        .order_by(Case.id.desc())
+        .all()
+    )
 
     # -----------------------------
     # VISIT VALIDATION
@@ -2521,18 +2629,24 @@ def add_treatment(patient_id):
         today_str = datetime.now().strftime("%Y-%m-%d")
 
         # ---------------------------------------
-        # FIXED CASE-ID HANDLING (PostgreSQL-safe)
         # ---------------------------------------
-        selected_case_code = request.form.get("case_id", "").strip()
-        manual_case_code = request.form.get("case_id_manual", "").strip()
+        # FIXED CASE-ID HANDLING (PostgreSQL-safe)
+        # -------------------------------------------------------
+        # ---------------------------------------
+        # FIXED CASE HANDLING (Existing or New)
+        # ---------------------------------------
+        selected_case_id = request.form.get("case_id")
 
-        # 1 — Decide the case_code used
-        if manual_case_code:
-            case_code = manual_case_code
-        elif selected_case_code:
-            case_code = selected_case_code
+        if selected_case_id and selected_case_id.isdigit():
+            # Existing Case
+            existing_case = Case.query.get(int(selected_case_id))
+
+            if not existing_case or existing_case.patient_id != patient.id:
+                flash("Invalid case selected.", "danger")
+                return redirect(url_for("view_patient", patient_id=patient.id) + "#visits")
+
         else:
-            # Auto-generate CASE-<pid>-YYYYMMDD-XX
+            # Auto-generate new case
             today = datetime.now().strftime("%Y%m%d")
             prefix = f"CASE-{patient.id}-{today}"
 
@@ -2543,20 +2657,16 @@ def add_treatment(patient_id):
 
             case_code = f"{prefix}-{count + 1:02d}"
 
-        # 2 — Resolve Case FK (INTEGER)
-        existing_case = Case.query.filter_by(case_code=case_code, patient_id=patient.id).first()
-
-        if not existing_case:
             existing_case = Case(
                 case_code=case_code,
                 title=f"Case {case_code}",
                 patient_id=patient.id,
-                status="Active",
+                status="Active"
             )
             db.session.add(existing_case)
             db.session.commit()
 
-        case_fk = existing_case.id  # 🔥 REAL INTEGER FK (PostgreSQL MUST HAVE THIS)
+        case_fk = existing_case.id
 
         # ---------------------------------------
         # DENTIST HANDLING
@@ -3005,14 +3115,24 @@ def view_case(case_id):
 @login_required
 def view_treatment(treatment_id):
     treatment = Treatment.query.get_or_404(treatment_id)
-    followups = FollowUp.query.filter_by(treatment_id=treatment.id).order_by(FollowUp.date.desc()).all()
-    patient = Patient.query.get(treatment.patient_id)
+    patient = Patient.query.get_or_404(treatment.patient_id)
     case = Case.query.get(treatment.case_id)
+    followups = FollowUp.query.filter_by(treatment_id=treatment.id).order_by(FollowUp.date.desc()).all()
     payments = Payment.query.filter_by(treatment_id=treatment.id).all()
     radiographs = Radiograph.query.filter_by(treatment_id=treatment.id).all()
 
+    # Totals
     total_paid = sum(p.amount_paid for p in payments)
     remaining = (treatment.amount or 0) - total_paid
+
+    # ----------------------------------------------------
+    # FIX: Detect role → Set correct back URL
+    # ----------------------------------------------------
+    if session.get("role") == "patient":
+        back_url = url_for("dashboard_patient")
+    else:
+        back_url = url_for("view_patient", patient_id=patient.id)
+    # ----------------------------------------------------
 
     return render_template(
         "view_treatment.html",
@@ -3023,7 +3143,8 @@ def view_treatment(treatment_id):
         payments=payments,
         radiographs=radiographs,
         total_paid=total_paid,
-        remaining=remaining
+        remaining=remaining,
+        back_url=back_url  # <— IMPORTANT
     )
 
 # ---------------------------------

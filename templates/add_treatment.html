@@ -9,26 +9,25 @@
     <!-- ============================
          CASE ID SYSTEM (UPDATED)
          ============================ -->
+<!-- =========================
+     FIXED CASE ID SYSTEM
+     ========================= -->
 <div class="mb-3 mt-3">
-  <label class="form-label fw-bold">Case ID (Optional)</label>
+  <label class="form-label fw-bold">Case (Optional)</label>
 
-  <!-- Select Existing Case -->
-  <select name="case_id_select" id="case_id_select" class="form-select mb-2">
-    <option value="">-- Start New Case / No Link --</option>
-    {% for case in cases %}
-    <option value="{{ case.case_code }}">{{ case.case_code }}</option>
-    {% endfor %}
-  </select>
+  <!-- Select Existing Case (uses INTEGER case.id) -->
+<select name="case_id" id="case_id" class="form-select mb-2">
+  <option value="">-- Start New Case --</option>
+  {% for case in cases %}
+    <option value="{{ case.id }}">
+      {{ case.case_code }}
+    </option>
+  {% endfor %}
+</select>
 
-  <!-- Manual Case Code Entry -->
-  <input type="text" name="case_id_manual" id="case_id_manual" class="form-control"
-         placeholder="Or enter Case ID manually">
-
-  <!-- Final Case Code to be submitted -->
-  <input type="hidden" name="case_code" id="final_case_id">
 
   <div class="form-text small text-muted">
-    Leave blank to auto-generate a new Case ID.
+    Select an existing case or leave empty to auto-create a new case.
   </div>
 </div>
 

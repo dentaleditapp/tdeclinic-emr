@@ -4,21 +4,46 @@
   <meta charset="utf-8">
   <title>Visit Summary - {{ patient.full_name }}</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+
   <style>
     body { font-size: 13px; }
-    .clinic-header { border-bottom: 2px solid #000; margin-bottom: 10px; padding-bottom: 8px; }
-    .clinic-name { font-size: 20px; font-weight: 700; }
-    .clinic-sub { font-size: 12px; }
-    .section-title { font-weight: 600; margin-top: 10px; margin-bottom: 4px; }
+
+    .clinic-header {
+      border-bottom: 2px solid #000;
+      margin-bottom: 15px;
+      padding-bottom: 12px;
+      text-align: center;
+    }
+
+    .clinic-logo {
+      width: 170px;
+      height: auto;
+      margin-bottom: 8px;
+    }
+
+    .clinic-sub {
+      font-size: 12px;
+      line-height: 1.3;
+    }
+
+    .section-title {
+      font-weight: 600;
+      margin-top: 12px;
+      margin-bottom: 4px;
+    }
+
     .small-text { font-size: 11px; }
+
     @media print {
       .no-print { display: none !important; }
       body { margin: 10mm; }
     }
   </style>
 </head>
+
 <body>
 
+<!-- PRINT BUTTON -->
 <div class="no-print text-end mt-2 me-3">
   <button onclick="window.print()" class="btn btn-sm btn-primary">🖨 Print</button>
 </div>
@@ -26,28 +51,29 @@
 <div class="container mt-3">
 
   <!-- CLINIC HEADER -->
-  <div class="clinic-header d-flex justify-content-between">
-    <div>
-      <div class="clinic-name">The Dental Edit Clinic</div>
-      <div class="clinic-sub">Smile Better Feel Better</div>
-      <div class="clinic-sub small-text">
-        Peshawar Medical Complex, Near Hayatabad Toll Plaza, Peshawar Ringroad<br>
-        Phone: 03235242928
-      </div>
+  <div class="clinic-header">
+
+    <!-- Logo -->
+    <img src="{{ url_for('static', filename='logo.png') }}" class="clinic-logo">
+
+    <!-- Address + Contact -->
+    <div class="clinic-sub">
+      Peshawar Medical Complex, Near Hayatabad Toll Plaza, Peshawar Ring Road<br>
+      Phone: 0323-5242928 — www.tdeclinic.com
     </div>
-    <div class="text-end small-text">
+
+    <!-- Summary ID -->
+    <div class="small-text mt-2">
       <strong>Visit Summary ID:</strong>
       {{ patient.file_no }}-{{ visit.visit_date|replace('-', '') if visit.visit_date else visit.id }}
-      <br>
-      <strong>Issued On:</strong> {{ visit.visit_date or '—' }}
     </div>
   </div>
 
   <!-- TITLE -->
-  <h5 class="text-center mb-2"><strong>Visit Summary</strong></h5>
+  <h5 class="text-center mb-3"><strong>Visit Summary</strong></h5>
 
-  <!-- PATIENT & VISIT INFO -->
-  <div class="row small-text mb-2">
+  <!-- PATIENT INFO -->
+  <div class="row small-text mb-3">
     <div class="col-6">
       <p class="mb-1"><strong>Patient Name:</strong> {{ patient.full_name }}</p>
       <p class="mb-1"><strong>File No:</strong> {{ patient.file_no }}</p>
@@ -57,33 +83,32 @@
     <div class="col-6">
       <p class="mb-1"><strong>Contact:</strong> {{ patient.contact or '—' }}</p>
       <p class="mb-1"><strong>Dentist:</strong>
-        {% if visit.dentist_obj %}
-          {{ visit.dentist_obj.name }}
-        {% else %}
-          {{ visit.dentist_name or '—' }}
-        {% endif %}
+        {% if visit.dentist_obj %}{{ visit.dentist_obj.name }}
+        {% else %}{{ visit.dentist_name or '—' }}{% endif %}
       </p>
+      <p class="mb-1"><strong>Visit Date:</strong> {{ visit.visit_date or '—' }}</p>
     </div>
   </div>
 
-  <hr class="mt-1 mb-2">
+  <hr>
 
-  <!-- CHIEF COMPLAINT & VISIT NOTES -->
+  <!-- CHIEF COMPLAINT -->
   <div class="small-text mb-2">
     <div class="section-title">Chief Complaint</div>
-    <p class="border rounded p-2 mb-1">{{ visit.chief_complaint or '—' }}</p>
+    <p class="border rounded p-2">{{ visit.chief_complaint or '—' }}</p>
 
     {% if visit.notes %}
     <div class="section-title">Clinical Notes</div>
-    <p class="border rounded p-2 mb-1" style="white-space: pre-wrap;">{{ visit.notes }}</p>
+    <p class="border rounded p-2" style="white-space: pre-wrap;">{{ visit.notes }}</p>
     {% endif %}
   </div>
 
-  <!-- TREATMENTS TABLE -->
+  <!-- TREATMENT TABLE -->
   <div class="small-text mb-2">
     <div class="section-title">Treatments Performed in This Visit</div>
+
     {% if treatments %}
-    <table class="table table-sm table-bordered mb-1">
+    <table class="table table-sm table-bordered">
       <thead class="table-light">
         <tr>
           <th style="width: 5%;">#</th>
@@ -101,11 +126,8 @@
           <td>{{ t.tooth_number or t.multi_tooth or '—' }}</td>
           <td>{{ t.amount or 0 }}</td>
           <td>
-            {% if t.status == 'Completed' %}Completed{% else %}Ongoing{% endif %}
-            <br>
-            <span class="text-muted">
-              Next: {{ t.next_appointment or '—' }}
-            </span>
+            {{ 'Completed' if t.status == 'Completed' else 'Ongoing' }}<br>
+            <span class="text-muted">Next: {{ t.next_appointment or '—' }}</span>
           </td>
         </tr>
         {% endfor %}
@@ -116,12 +138,12 @@
     {% endif %}
   </div>
 
-  <!-- PRESCRIPTION (IF ANY) -->
-  <div class="small-text mb-2">
+  <!-- PRESCRIPTION -->
+  <div class="small-text mb-3">
     <div class="section-title">Prescription (if issued)</div>
 
     {% if rx and rx.items and rx.items|length > 0 %}
-      <table class="table table-sm table-bordered mb-1">
+      <table class="table table-sm table-bordered">
         <thead class="table-light">
           <tr>
             <th>#</th>
@@ -147,53 +169,30 @@
           {% endfor %}
         </tbody>
       </table>
+
       {% if rx.notes %}
-      <p class="mb-1"><strong>Additional Instructions:</strong> {{ rx.notes }}</p>
+      <p><strong>Additional Instructions:</strong> {{ rx.notes }}</p>
       {% endif %}
     {% else %}
-      <p class="text-muted mb-1">No prescription recorded for this visit.</p>
+      <p class="text-muted">No prescription recorded for this visit.</p>
     {% endif %}
   </div>
 
-  <!-- POST-OPERATIVE INSTRUCTIONS (AUTO FROM TREATMENTS) -->
-  <div class="small-text mb-2">
-    {% set has_extraction = false %}
-    {% set has_scaling = false %}
-    {% set has_rct = false %}
-    {% set has_implant = false %}
-
-    {% for t in treatments %}
-      {% if t.treatment_type and 'xtraction' in t.treatment_type %}{% set has_extraction = true %}{% endif %}
-      {% if t.treatment_type and 'Scaling' in t.treatment_type %}{% set has_scaling = true %}{% endif %}
-      {% if t.treatment_type and 'Root Canal' in t.treatment_type %}{% set has_rct = true %}{% endif %}
-      {% if t.treatment_type and 'Implant' in t.treatment_type %}{% set has_implant = true %}{% endif %}
-    {% endfor %}
-
-    {% if has_extraction or has_scaling or has_rct or has_implant %}
-      <div class="section-title">General Post-Treatment Instructions</div>
-      <ul class="mb-1">
-        {% if has_extraction %}
-          <li>Keep gauze in place for 30–45 minutes to control bleeding. Avoid rinsing or spitting for the first 24 hours.</li>
-          <li>Soft, cool diet. Avoid chewing on the treated side for 24 hours.</li>
-        {% endif %}
-        {% if has_scaling %}
-          <li>Mild sensitivity and slight bleeding from gums may occur after scaling; this usually settles in 1–2 days.</li>
-          <li>Start regular brushing twice daily and flossing as advised.</li>
-        {% endif %}
-        {% if has_rct %}
-          <li>Mild tenderness when biting is common after root canal therapy; avoid chewing hard foods on that tooth until restoration.</li>
-        {% endif %}
-        {% if has_implant %}
-          <li>Avoid disturbing the implant area with fingers or tongue. Maintain excellent oral hygiene as instructed.</li>
-        {% endif %}
-        <li>Take medicines exactly as prescribed. If severe pain, swelling, or bleeding occurs, contact the clinic immediately.</li>
-      </ul>
-    {% endif %}
+  <!-- QR CODE BLOCK -->
+  <div class="text-center mt-4">
+    <img src="{{ url_for('qr_code', doc_type='summary',
+      doc_uid=patient.file_no ~ '-' ~ (visit.visit_date|replace('-', ''))) }}"
+      style="width:125px;">
+    <div class="small-text text-muted mt-1">
+      Scan to verify authenticity<br>
+      Or visit: www.tdeclinic.com/verify/summary/{{ patient.file_no }}-{{ visit.visit_date|replace('-', '') }}
+    </div>
   </div>
 
-  <!-- FOOTER NOTE -->
-  <div class="mt-3 small-text text-muted text-center">
-    This is a computer-generated visit summary from The Dental Edit Clinic EMR and does not require a handwritten signature.
+  <!-- FOOTER -->
+  <div class="mt-4 small-text text-muted text-center">
+    This visit summary is computer-generated from The Dental Edit Clinic EMR.<br>
+    No handwritten signature is required.
   </div>
 
 </div>
