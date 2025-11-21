@@ -52,7 +52,6 @@
 
   <!-- CLINIC HEADER -->
   <div class="clinic-header">
-
     <img src="{{ url_for('static', filename='logo.png') }}" class="clinic-logo">
 
     <div class="clinic-sub">
@@ -66,6 +65,7 @@
     </div>
   </div>
 
+  <!-- TITLE -->
   <h5 class="text-center mb-3"><strong>Visit Summary</strong></h5>
 
   <!-- PATIENT INFO -->
@@ -133,6 +133,187 @@
       <p class="text-muted">No treatments recorded for this visit.</p>
     {% endif %}
   </div>
+
+  {% if treatments %}
+  <div class="section-title">Treatment Notes</div>
+  <div class="border rounded p-2 small-text mb-3">
+
+    {% set ns = namespace(has_notes=false) %}
+
+    {% for t in treatments %}
+      {% if t.notes %}
+        {% set ns.has_notes = true %}
+        <p class="mb-2">
+          <strong>{{ loop.index }}. {{ t.treatment_type }}</strong><br>
+          <span style="white-space: pre-wrap;">{{ t.notes }}</span>
+        </p>
+      {% endif %}
+    {% endfor %}
+
+    {% if not ns.has_notes %}
+      <p class="text-muted mb-0">No treatment notes recorded.</p>
+    {% endif %}
+
+  </div>
+{% endif %}
+
+
+  <!-- POST OPERATIVE INSTRUCTIONS -->
+  <!-- POST OPERATIVE INSTRUCTIONS -->
+{% set ns = namespace(items=[]) %}
+
+{% for t in treatments %}
+    {% set name = t.treatment_type|lower %}
+
+  {% if "extraction" in name %}
+
+    {# ---------------- SIMPLE EXTRACTION ---------------- #}
+    {% if t.extraction_type == "Simple (Non-surgical)" %}
+        {% set ns.items = ns.items + [
+            "• Bite on gauze for 30–45 minutes to control bleeding.",
+            "• Do NOT rinse, spit, or drink hot fluids for 24 hours.",
+            "• Soft, cool diet for the first 24 hours.",
+            "• Avoid using a straw or smoking for 48 hours.",
+            "• Mild pain and oozing are normal.",
+            "• Start warm salt-water rinses after 24 hours (3–4 times/day).",
+            "• Take prescribed painkillers as directed.",
+            "• If bleeding persists beyond 6 hours, contact clinic."
+        ] %}
+    {% endif %}
+
+    {# ---------------- SURGICAL EXTRACTION ---------------- #}
+    {% if t.extraction_type == "Surgical Extraction" %}
+        {% set ns.items = ns.items + [
+            "• Bite on gauze for 30–45 minutes to achieve hemostasis.",
+            "• Avoid rinsing or spitting for 24 hours.",
+            "• Expect swelling for 48–72 hours — apply ice pack for first 24 hours (10 mins on / 10 mins off).",
+            "• Switch to warm compresses after 24 hours.",
+            "• Soft diet for 48 hours; avoid chewing on surgical side.",
+            "• Take antibiotics and painkillers exactly as prescribed.",
+            "• Avoid smoking for at least 72 hours (very important).",
+            "• Keep head elevated when sleeping the first night.",
+            "• If bone removal was done, expect longer healing time.",
+            "• Keep the area clean; start warm salt-water rinses after 24 hours.",
+            "• If sutures were placed, return for removal in 5–7 days.",
+            "• If dissolvable sutures were placed, they will fall out in 7–10 days.",
+            "• Contact the clinic if swelling, fever or severe pain persists."
+        ] %}
+    {% endif %}
+
+{% endif %}
+
+
+    {# ---------------- DRY SOCKET ---------------- #}
+    {% if "dry socket" in name %}
+        {% set ns.items = ns.items + [
+            "• Avoid rinsing for 24 hours.",
+            "• Pain should improve within 48 hours after dressing.",
+            "• Avoid smoking and vigorous mouth movements."
+        ] %}
+    {% endif %}
+
+    {# ---------------- RCT ---------------- #}
+    {% if "rct" in name or "pulpotomy" in name or "pulpectomy" in name %}
+        {% set ns.items = ns.items + [
+            "• Mild discomfort for 2–3 days is normal.",
+            "• Avoid chewing until crown or final restoration is placed.",
+            "• Continue analgesics as needed."
+        ] %}
+    {% endif %}
+
+    {# ---------------- FILLINGS ---------------- #}
+    {% if "filling" in name or "composite" in name or "gic" in name %}
+        {% set ns.items = ns.items + [
+            "• Avoid hard chewing for 1–2 hours.",
+            "• Temporary sensitivity may occur."
+        ] %}
+    {% endif %}
+
+    {# ---------------- CROWNS/BRIDGES ---------------- #}
+    {% if "crown" in name %}
+        {% set ns.items = ns.items + [
+            "• Avoid hard or sticky foods for 24 hours.",
+            "• If temporary crown placed, avoid chewing on that side."
+        ] %}
+    {% endif %}
+    {% if "bridge" in name %}
+        {% set ns.items = ns.items + [
+            "• Avoid hard chewing for 24 hours after cementation.",
+            "• Clean under pontics with floss threader/interdental brush."
+        ] %}
+    {% endif %}
+
+    {# ---------------- SCALING / PERIO ---------------- #}
+    {% if "scaling" in name or "curettage" in name or "root planing" in name %}
+        {% set ns.items = ns.items + [
+            "• Mild bleeding or sensitivity is normal.",
+            "• Warm saltwater rinses twice daily.",
+            "• Soft brushing for 24 hours."
+        ] %}
+    {% endif %}
+    {% if "flap" in name or "gingivectomy" in name or "gingivoplasty" in name %}
+        {% set ns.items = ns.items + [
+            "• Avoid brushing surgical area for 24 hours.",
+            "• Soft diet for 24 hours.",
+            "• Follow up for suture review."
+        ] %}
+    {% endif %}
+
+    {# ---------------- IMPLANTS ---------------- #}
+    {% if "implant" in name %}
+        {% set ns.items = ns.items + [
+            "• Avoid chewing on implant area for 1 week.",
+            "• Use chlorhexidine rinse twice daily for 1 week.",
+            "• Maintain excellent oral hygiene around implant."
+        ] %}
+    {% endif %}
+
+    {# ---------------- DENTURES ---------------- #}
+    {% if "denture" in name %}
+        {% set ns.items = ns.items + [
+            "• Wear denture for first 24 hours unless told otherwise.",
+            "• Expect mild soreness; adjustments may be needed."
+        ] %}
+    {% endif %}
+
+    {# ---------------- PEDO ---------------- #}
+    {% if "fluoride" in name or "sealant" in name or "ssc" in name %}
+        {% set ns.items = ns.items + [
+            "• Avoid sticky foods for several hours.",
+            "• Mild soreness is normal and temporary."
+        ] %}
+    {% endif %}
+
+    {# ---------------- BIOPSY ---------------- #}
+    {% if "biopsy" in name %}
+        {% set ns.items = ns.items + [
+            "• Avoid disturbing the area for 24 hours.",
+            "• Keep surgical site clean.",
+            "• Follow up for biopsy report."
+        ] %}
+    {% endif %}
+
+    {# ---------------- ORTHO ---------------- #}
+    {% if "bracket" in name or "wire" in name or "ortho" in name
+          or "power chain" in name or "elastic" in name or "expander" in name %}
+        {% set ns.items = ns.items + [
+            "• Mild discomfort for 2–3 days is normal after adjustments.",
+            "• Avoid hard/sticky foods.",
+            "• Use orthodontic wax for poking wires.",
+            "• Brush thoroughly around brackets."
+        ] %}
+    {% endif %}
+{% endfor %}
+
+{% if ns.items %}
+<div class="section-title">Post-operative Instructions</div>
+<div class="border rounded p-2 small-text mb-3">
+    {% for line in ns.items %}
+        {{ line }}<br>
+    {% endfor %}
+</div>
+{% endif %}
+
 
   <!-- PRESCRIPTION -->
   <div class="small-text mb-3">
